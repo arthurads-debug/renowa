@@ -1,7 +1,7 @@
 // /api/lead — rota PÚBLICA que recebe as aplicações do questionário do site e grava no CRM.
-import { json, readBody, fail } from "./_lib/http.js";
-import { cleanApplication } from "./_lib/leads.js";
-import { writeLead, hitRateLimit, storeEnabled } from "./_lib/store.js";
+import { json, readBody, fail } from "../_lib/http.js";
+import { cleanApplication } from "../_lib/leads.js";
+import { writeLead, hitRateLimit, storeEnabled } from "../_lib/store.js";
 
 export default async function handler(req, res) {
   try {

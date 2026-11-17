@@ -1,9 +1,9 @@
 // GET /api/content — calendário editorial, vendas informadas e relatórios mensais (Google Sheets).
-import { json, fail } from "./_lib/http.js";
-import { findById } from "./_lib/clients.js";
-import { getSession } from "./_lib/session.js";
-import { cached } from "./_lib/cache.js";
-import { fetchCalendar, fetchSales, fetchReports } from "./_lib/sheets.js";
+import { json, fail } from "../_lib/http.js";
+import { findById } from "../_lib/clients.js";
+import { getSession } from "../_lib/session.js";
+import { cached } from "../_lib/cache.js";
+import { fetchCalendar, fetchSales, fetchReports } from "../_lib/sheets.js";
 
 const TTL = 120_000; // planilhas mudam com frequência: 2 min
 

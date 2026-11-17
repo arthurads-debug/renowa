@@ -1,6 +1,6 @@
-import { json, fail } from "../_lib/http.js";
-import { requireAdmin } from "../_lib/admin.js";
-import { storeEnabled } from "../_lib/store.js";
+import { json, fail } from "../../_lib/http.js";
+import { requireAdmin } from "../../_lib/admin.js";
+import { storeEnabled } from "../../_lib/store.js";
 
 export default function handler(req, res) {
   try {

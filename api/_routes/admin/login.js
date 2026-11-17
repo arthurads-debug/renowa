@@ -1,7 +1,7 @@
-import { json, readBody, fail, sleep } from "../_lib/http.js";
-import { verifyPassword, burn } from "../_lib/clients.js";
-import { findAdmin } from "../_lib/admin.js";
-import { setAdminSession, clearAdminSession } from "../_lib/session.js";
+import { json, readBody, fail, sleep } from "../../_lib/http.js";
+import { verifyPassword, burn } from "../../_lib/clients.js";
+import { findAdmin } from "../../_lib/admin.js";
+import { setAdminSession, clearAdminSession } from "../../_lib/session.js";
 
 export default async function handler(req, res) {
   try {

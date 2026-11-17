@@ -2,5 +2,7 @@
   "name": "agency-site",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": "22.x"
+  }
 }

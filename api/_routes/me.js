@@ -1,6 +1,6 @@
-import { json, fail } from "./_lib/http.js";
-import { findById, publicProfile } from "./_lib/clients.js";
-import { getSession } from "./_lib/session.js";
+import { json, fail } from "../_lib/http.js";
+import { findById, publicProfile } from "../_lib/clients.js";
+import { getSession } from "../_lib/session.js";
 
 export default async function handler(req, res) {
   try {

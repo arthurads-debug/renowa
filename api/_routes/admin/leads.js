@@ -1,8 +1,8 @@
 // /api/admin/leads — CRM da agência. GET lista · PATCH atualiza etapa/valor/nota · DELETE ?id= remove
-import { json, readBody, fail } from "../_lib/http.js";
-import { requireAdmin } from "../_lib/admin.js";
-import { readLeads, readLead, writeLead, removeLead } from "../_lib/store.js";
-import { applyUpdate } from "../_lib/leads.js";
+import { json, readBody, fail } from "../../_lib/http.js";
+import { requireAdmin } from "../../_lib/admin.js";
+import { readLeads, readLead, writeLead, removeLead } from "../../_lib/store.js";
+import { applyUpdate } from "../../_lib/leads.js";
 
 export default async function handler(req, res) {
   try {

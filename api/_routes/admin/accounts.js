@@ -1,10 +1,10 @@
 // GET /api/admin/accounts — contas disponíveis para vincular a um cliente:
 // Google Ads (sob a MCC da agência), contas de anúncio da Meta, Páginas do Facebook e Instagram ligados.
-import { json, fail } from "../_lib/http.js";
-import { requireAdmin } from "../_lib/admin.js";
-import { cached } from "../_lib/cache.js";
-import { listGoogleAccounts } from "../_lib/google-ads.js";
-import { listMetaAdAccounts, listPages } from "../_lib/meta-ads.js";
+import { json, fail } from "../../_lib/http.js";
+import { requireAdmin } from "../../_lib/admin.js";
+import { cached } from "../../_lib/cache.js";
+import { listGoogleAccounts } from "../../_lib/google-ads.js";
+import { listMetaAdAccounts, listPages } from "../../_lib/meta-ads.js";
 
 const TTL = 10 * 60_000;
 

@@ -1,12 +1,12 @@
 // GET /api/metrics?from=YYYY-MM-DD&to=YYYY-MM-DD[&split=YYYY-MM-DD]
 // split = início do período atual; antes dele é o período de comparação (para o alcance não somável).
 // Devolve linhas normalizadas (dia × campanha) de Google Ads e Meta Ads do cliente logado.
-import { json, fail } from "./_lib/http.js";
-import { findById } from "./_lib/clients.js";
-import { getSession } from "./_lib/session.js";
-import { cached } from "./_lib/cache.js";
-import { fetchGoogleAds } from "./_lib/google-ads.js";
-import { fetchMetaAds, fetchMetaSummary } from "./_lib/meta-ads.js";
+import { json, fail } from "../_lib/http.js";
+import { findById } from "../_lib/clients.js";
+import { getSession } from "../_lib/session.js";
+import { cached } from "../_lib/cache.js";
+import { fetchGoogleAds } from "../_lib/google-ads.js";
+import { fetchMetaAds, fetchMetaSummary } from "../_lib/meta-ads.js";
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_DAYS = 400;

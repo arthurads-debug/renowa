@@ -1,10 +1,10 @@
 // GET /api/social?from=YYYY-MM-DD&to=YYYY-MM-DD — Instagram e Página do Facebook do cliente.
-import { json, fail } from "./_lib/http.js";
-import { findById } from "./_lib/clients.js";
-import { getSession } from "./_lib/session.js";
-import { cached } from "./_lib/cache.js";
-import { fetchInstagram } from "./_lib/instagram.js";
-import { fetchFacebook } from "./_lib/facebook.js";
+import { json, fail } from "../_lib/http.js";
+import { findById } from "../_lib/clients.js";
+import { getSession } from "../_lib/session.js";
+import { cached } from "../_lib/cache.js";
+import { fetchInstagram } from "../_lib/instagram.js";
+import { fetchFacebook } from "../_lib/facebook.js";
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const TTL = 15 * 60_000;

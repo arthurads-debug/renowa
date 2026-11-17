@@ -1,8 +1,8 @@
 // POST /api/admin/impersonate {id} — a agência abre o painel exatamente como o cliente vê.
-import { json, readBody, fail } from "../_lib/http.js";
-import { requireAdmin } from "../_lib/admin.js";
-import { findById } from "../_lib/clients.js";
-import { setSession } from "../_lib/session.js";
+import { json, readBody, fail } from "../../_lib/http.js";
+import { requireAdmin } from "../../_lib/admin.js";
+import { findById } from "../../_lib/clients.js";
+import { setSession } from "../../_lib/session.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return json(res, 405, { error: "Método não permitido" });

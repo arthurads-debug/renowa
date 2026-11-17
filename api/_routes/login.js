@@ -1,6 +1,6 @@
-import { json, readBody, fail, sleep } from "./_lib/http.js";
-import { findByEmail, verifyPassword, burn, publicProfile } from "./_lib/clients.js";
-import { setSession } from "./_lib/session.js";
+import { json, readBody, fail, sleep } from "../_lib/http.js";
+import { findByEmail, verifyPassword, burn, publicProfile } from "../_lib/clients.js";
+import { setSession } from "../_lib/session.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return json(res, 405, { error: "Método não permitido" });

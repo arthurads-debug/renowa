@@ -1,8 +1,8 @@
 // /api/admin/clients — GET lista · POST cria/atualiza · DELETE ?id= remove
-import { json, readBody, fail } from "../_lib/http.js";
-import { requireAdmin } from "../_lib/admin.js";
-import { loadClients, invalidateClients, hashPassword, adminView } from "../_lib/clients.js";
-import { writeClient, removeClient } from "../_lib/store.js";
+import { json, readBody, fail } from "../../_lib/http.js";
+import { requireAdmin } from "../../_lib/admin.js";
+import { loadClients, invalidateClients, hashPassword, adminView } from "../../_lib/clients.js";
+import { writeClient, removeClient } from "../../_lib/store.js";
 
 const PROFILES = ["awareness", "leads", "sales"];
 const str = (v, max = 120) => String(v ?? "").trim().slice(0, max);

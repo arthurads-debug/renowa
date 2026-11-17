@@ -25,7 +25,7 @@ export function kpiGrid(items, { partial } = {}) {
   return h("section", { class: "kpis", "aria-label": "Indicadores principais" },
     items.map((k) => h("article", { class: `kpi${k.hero ? " kpi--hero" : ""}` },
       h("p", { class: "kpi__label" }, k.label),
-      h("p", { class: "kpi__value" }, k.value),
+      h("p", { class: "kpi__value", style: `--len:${Math.max(6, String(k.value).length)}` }, k.value),
       partial ? h("span", { class: "delta delta--flat" }, "dia em andamento") : delta(k.n, k.p, k.good),
       h("p", { class: "kpi__cmp" }, k.hint ? k.hint : k.prevText ? `Período anterior: ${k.prevText}` : " "))));
 }

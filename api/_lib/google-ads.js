@@ -2,7 +2,21 @@
 // Docs: https://developers.google.com/google-ads/api/rest/overview
 import { googleAuth } from "./connections.js";
 
-const VERSION = () => process.env.GOOGLE_ADS_API_VERSION || "v21";
+// Versão da API: o Google desliga cada versão cerca de 1 ano depois do lançamento.
+// Sem GOOGLE_ADS_API_VERSION, descobre a mais nova ativa (a que responde 401 sem login; desligada responde 404).
+let verCache = { v: null, at: 0 };
+async function VER() {
+  if (process.env.GOOGLE_ADS_API_VERSION) return process.env.GOOGLE_ADS_API_VERSION;
+  if (verCache.v && Date.now() - verCache.at < 6 * 3600_000) return verCache.v;
+  for (let n = 32; n >= 22; n--) {
+    try {
+      const r = await fetch(`https://googleads.googleapis.com/v${n}/customers:listAccessibleCustomers`, { signal: AbortSignal.timeout(4000) });
+      if (r.status !== 404) { verCache = { v: `v${n}`, at: Date.now() }; return verCache.v; }
+    } catch { /* tenta a próxima */ }
+  }
+  verCache = { v: "v26", at: Date.now() };
+  return verCache.v;
+}
 
 let token = { value: null, exp: 0, rt: "" };
 
@@ -33,7 +47,7 @@ async function search(customerId, query, loginCustomerId) {
   };
   const mcc = loginCustomerId === null ? "" : loginCustomerId || (await mccId());
   if (mcc) headers["login-customer-id"] = digits(mcc);
-  const url = `https://googleads.googleapis.com/${VERSION()}/customers/${digits(customerId)}/googleAds:search`;
+  const url = `https://googleads.googleapis.com/${await VER()}/customers/${digits(customerId)}/googleAds:search`;
   const out = [];
   let pageToken;
   do {
@@ -81,7 +95,7 @@ export async function fetchGoogleAds(account, from, to) {
   const mcc = account.loginCustomerId || (await mccId());
   if (mcc) headers["login-customer-id"] = digits(mcc);
 
-  const url = `https://googleads.googleapis.com/${VERSION()}/customers/${customerId}/googleAds:search`;
+  const url = `https://googleads.googleapis.com/${await VER()}/customers/${customerId}/googleAds:search`;
   const rows = [];
   let pageToken;
   do {
@@ -112,7 +126,7 @@ export async function fetchGoogleAds(account, from, to) {
 
 // Sem MCC: todas as contas que o login do Google enxerga (diretas e as que estão sob gerentes)
 async function listAccessible() {
-  const res = await fetch(`https://googleads.googleapis.com/${VERSION()}/customers:listAccessibleCustomers`, {
+  const res = await fetch(`https://googleads.googleapis.com/${await VER()}/customers:listAccessibleCustomers`, {
     headers: { Authorization: `Bearer ${await accessToken()}`, "developer-token": await devToken() },
   });
   if (!res.ok) throw new Error(`Google Ads API (${res.status}): ${await res.text()}`);

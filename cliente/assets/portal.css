@@ -519,3 +519,46 @@ a.post:hover { background: var(--bg); }
 /* Cadastro de cliente e status "aguardando liberação" no admin */
 .login__foot .link { font-size: inherit; }
 .login__foot--small { margin-top: 0; font-size: 13px; }
+
+/* Cadastro: confirmar senha, exibir senhas */
+.field-help { margin-top: -4px; font-size: 13px; color: var(--ink-3); }
+.check { display: inline-flex !important; align-items: center; gap: 10px; margin-top: 4px !important; font-weight: 500 !important; cursor: pointer; user-select: none; }
+.check input { width: 18px !important; height: 18px; padding: 0 !important; accent-color: var(--brand); border-radius: 5px; }
+
+/* Tela "Aguardando aprovação do perfil" */
+.wait { width: 100%; max-width: 440px; display: grid; justify-items: center; text-align: center; gap: 14px; }
+.wait__mark { position: relative; width: 168px; height: 168px; display: grid; place-items: center; margin-bottom: 10px; }
+.wait__core { position: relative; z-index: 2; width: 104px; height: 104px; border-radius: 50%; background: var(--brand); display: grid; place-items: center; box-shadow: 0 18px 50px -12px rgba(30,18,234,.6); animation: waitBreath 2.8s ease-in-out infinite; }
+.wait__core svg { width: 50px; fill: #fff; animation: waitR 2.8s ease-in-out infinite; }
+.wait__ring { position: absolute; inset: 32px; border-radius: 50%; border: 2px solid rgba(30,18,234,.35); animation: waitRing 2.8s cubic-bezier(.2,.7,.3,1) infinite; }
+.wait__ring--b { animation-delay: 1.4s; }
+.wait__orbit { position: absolute; inset: 0; width: 100%; height: 100%; animation: spin 5s linear infinite; }
+.wait__orbit circle { fill: none; stroke: rgba(30,18,234,.18); stroke-width: 2; stroke-dasharray: 4 10; }
+.wait__orbit .wait__dot { fill: var(--accent); stroke: none; filter: drop-shadow(0 0 6px rgba(250,72,2,.7)); }
+.wait__kicker { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--brand-ink); }
+.wait__title { font-family: var(--font-display); font-stretch: 125%; font-weight: 800; letter-spacing: -.04em; font-size: clamp(1.9rem, 1.4rem + 1.6vw, 2.5rem); line-height: 1.02; color: var(--ink); }
+.wait__dots i { font-style: normal; display: inline-block; animation: waitDot 1.4s ease-in-out infinite; }
+.wait__dots i:nth-child(2) { animation-delay: .2s; } .wait__dots i:nth-child(3) { animation-delay: .4s; }
+.wait__text { color: var(--ink-2); max-width: 36ch; }
+.wait__steps { list-style: none; display: grid; gap: 10px; width: 100%; margin: 8px 0 4px; padding: 16px 18px; border-radius: 16px; background: var(--bg); border: 1px solid var(--line); text-align: left; }
+.wait__steps li { display: flex; align-items: center; gap: 12px; font-weight: 600; color: var(--ink-3); }
+.wait__steps li span { position: relative; width: 22px; height: 22px; flex: none; border-radius: 50%; border: 2px solid #CFD3E2; }
+.wait__steps li.is-done { color: var(--ink); }
+.wait__steps li.is-done span { background: var(--good, #12B76A); border-color: var(--good, #12B76A); }
+.wait__steps li.is-done span::after { content: ""; position: absolute; left: 6px; top: 2px; width: 6px; height: 11px; border: solid #fff; border-width: 0 2px 2px 0; rotate: 45deg; }
+.wait__steps li.is-now { color: var(--ink); }
+.wait__steps li.is-now span { border-color: var(--accent); border-top-color: transparent; animation: spin 1s linear infinite; }
+.wait__fine { font-size: 13px; color: var(--ink-3); }
+.wait .btn { margin-top: 6px; }
+.wait > * { animation: waitIn .7s cubic-bezier(.2,.8,.2,1) both; }
+.wait > :nth-child(2) { animation-delay: .1s; } .wait > :nth-child(3) { animation-delay: .16s; } .wait > :nth-child(4) { animation-delay: .22s; }
+.wait > :nth-child(5) { animation-delay: .28s; } .wait > :nth-child(6) { animation-delay: .34s; } .wait > :nth-child(7) { animation-delay: .4s; }
+@keyframes waitIn { from { opacity: 0; transform: translateY(14px); } }
+@keyframes waitBreath { 50% { transform: scale(1.05); box-shadow: 0 24px 60px -10px rgba(30,18,234,.75); } }
+@keyframes waitR { 50% { transform: translateY(-2px); } }
+@keyframes waitRing { 0% { transform: scale(.8); opacity: .9; } 100% { transform: scale(1.9); opacity: 0; } }
+@keyframes waitDot { 0%, 100% { opacity: .2; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) {
+  .wait__core, .wait__core svg, .wait__ring, .wait__orbit, .wait__dots i, .wait > *, .wait__steps li.is-now span { animation: none !important; }
+  .wait__ring { display: none; }
+}

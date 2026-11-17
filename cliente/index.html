@@ -72,15 +72,32 @@
         <label for="su-phone">WhatsApp</label>
         <input id="su-phone" type="tel" autocomplete="tel" inputmode="tel" />
         <label for="su-pass">Crie uma senha</label>
-        <input id="su-pass" type="password" autocomplete="new-password" minlength="8" required />
+        <input id="su-pass" type="password" autocomplete="new-password" minlength="8" required aria-describedby="su-pass-help" />
+        <p class="field-help" id="su-pass-help">Mínimo de 8 caracteres.</p>
+        <label for="su-pass2">Confirme a senha</label>
+        <input id="su-pass2" type="password" autocomplete="new-password" minlength="8" required />
+        <label class="check" for="su-show"><input type="checkbox" id="su-show" /> Exibir senhas</label>
         <p class="form-error" id="signup-error" role="alert"></p>
         <button class="btn btn--primary btn--block" type="submit"><span>Criar perfil</span></button>
         <p class="login__foot">Já tem acesso? <button type="button" class="link" id="to-login">Entrar</button></p>
       </form>
 
-      <div class="login__form" id="signup-done" hidden>
-        <h1>Cadastro enviado</h1>
-        <p class="login__hint">Recebemos o seu perfil. Assim que a agência liberar o acesso, você entra com o e-mail e a senha que acabou de criar.</p>
+      <div class="wait" id="signup-done" hidden role="status" aria-live="polite">
+        <div class="wait__mark" aria-hidden="true">
+          <span class="wait__ring wait__ring--a"></span>
+          <span class="wait__ring wait__ring--b"></span>
+          <svg class="wait__orbit" viewBox="0 0 200 200"><circle cx="100" cy="100" r="92" /><circle class="wait__dot" cx="100" cy="8" r="6" /></svg>
+          <span class="wait__core"><svg viewBox="0 0 1060 724"><path d="M412 0H837L717.6 210H547L255 723H1Z M717.6 210H970L1059 367L978 509H765L887 723H667L467 369H807Z" /></svg></span>
+        </div>
+        <p class="wait__kicker">Renowa · Área do Cliente</p>
+        <h1 class="wait__title">Aguardando aprovação<br />do perfil<span class="wait__dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></h1>
+        <p class="wait__text" id="wait-text">Recebemos o seu cadastro. A equipe da agência confere os dados e libera o seu acesso ao painel.</p>
+        <ol class="wait__steps">
+          <li class="is-done"><span></span>Cadastro recebido</li>
+          <li class="is-now"><span></span>Análise da agência</li>
+          <li><span></span>Acesso liberado ao painel</li>
+        </ol>
+        <p class="wait__fine">Quando o acesso for liberado, entre com o e-mail e a senha que você criou.</p>
         <button type="button" class="btn btn--primary btn--block" id="done-login"><span>Voltar para o login</span></button>
       </div>
     </main>

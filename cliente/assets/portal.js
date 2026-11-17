@@ -326,6 +326,7 @@ async function signIn(email, password) {
     return c;
   }
   const r = await api("/api/login", { method: "POST", body: JSON.stringify({ email, password }) });
+  if (r.status === 403 && /análise/.test(r.data?.error || "")) { showWaiting(email); throw new Error(""); }
   if (!r.ok) throw new Error(r.data?.error || "Não foi possível entrar.");
   return r.data.client;
 }
@@ -338,23 +339,33 @@ function showForm(id) {
 $("#to-signup").addEventListener("click", () => showForm("signup-form"));
 $("#to-login").addEventListener("click", () => showForm("login-form"));
 $("#done-login").addEventListener("click", () => showForm("login-form"));
+$("#su-show").addEventListener("change", (e) => {
+  ["#su-pass", "#su-pass2"].forEach((s) => ($(s).type = e.target.checked ? "text" : "password"));
+});
+function showWaiting(email) {
+  if (email) $("#wait-text").textContent = `Recebemos o cadastro de ${email}. A equipe da agência confere os dados e libera o seu acesso ao painel.`;
+  showForm("signup-done");
+}
 $("#signup-form").addEventListener("submit", async (e) => {
   e.preventDefault();
+  const form = e.currentTarget; // guardado antes do await (depois dele currentTarget vira null)
   const err = $("#signup-error");
-  const btn = e.currentTarget.querySelector("button[type=submit]");
+  const btn = form.querySelector("button[type=submit]");
   const body = {
     company: $("#su-company").value.trim(), contactName: $("#su-name").value.trim(),
     email: $("#su-email").value.trim(), phone: $("#su-phone").value.trim(), password: $("#su-pass").value,
   };
   if (!body.company || !body.contactName || !body.email || !body.password) { err.textContent = "Preencha empresa, nome, e-mail e senha."; return; }
-  if (body.password.length < 8) { err.textContent = "A senha precisa ter pelo menos 8 caracteres."; return; }
+  if (body.password.length < 8) { err.textContent = "A senha precisa ter pelo menos 8 caracteres."; $("#su-pass").focus(); return; }
+  if (body.password !== $("#su-pass2").value) { err.textContent = "As senhas não são iguais. Digite a mesma senha nos dois campos."; $("#su-pass2").focus(); return; }
   btn.disabled = true; btn.querySelector("span").textContent = "Enviando…"; err.textContent = "";
   try {
     const r = await api("/api/signup", { method: "POST", body: JSON.stringify(body) });
     if (!r.ok) throw new Error(r.data?.error || "Não foi possível enviar agora.");
-    e.currentTarget.reset();
+    form.reset();
+    ["#su-pass", "#su-pass2"].forEach((s) => ($(s).type = "password"));
     $("#login-email").value = body.email;
-    showForm("signup-done");
+    showWaiting(body.email);
   } catch (ex) {
     err.textContent = ex.message;
   } finally {

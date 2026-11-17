@@ -75,3 +75,43 @@ export async function hitRateLimit(ip, max = 5) {
   if (n === 1) await cmd("EXPIRE", key, 660);
   return n > max;
 }
+
+/* ---------- Valores simples (conexões, configurações) ---------- */
+export async function kvGetJSON(key) {
+  if (!storeEnabled()) return null;
+  const raw = await cmd("GET", key);
+  return raw ? JSON.parse(raw) : null;
+}
+export async function kvSetJSON(key, value) {
+  if (!storeEnabled()) throw off();
+  await cmd("SET", key, JSON.stringify(value));
+}
+export async function kvDel(key) {
+  if (!storeEnabled()) throw off();
+  await cmd("DEL", key);
+}
+
+/* ---------- Calendário editorial (um hash por cliente) ---------- */
+const POSTS = (clientId) => `renowa:posts:${clientId}`;
+export async function readPosts(clientId) {
+  if (!storeEnabled()) return [];
+  const flat = (await cmd("HGETALL", POSTS(clientId))) || [];
+  const out = [];
+  for (let i = 0; i < flat.length; i += 2) {
+    try { out.push(JSON.parse(flat[i + 1])); } catch { /* ignora */ }
+  }
+  return out;
+}
+export async function readPost(clientId, id) {
+  if (!storeEnabled()) throw off();
+  const raw = await cmd("HGET", POSTS(clientId), id);
+  return raw ? JSON.parse(raw) : null;
+}
+export async function writePost(clientId, post) {
+  if (!storeEnabled()) throw off();
+  await cmd("HSET", POSTS(clientId), post.id, JSON.stringify(post));
+}
+export async function removePost(clientId, id) {
+  if (!storeEnabled()) throw off();
+  await cmd("HDEL", POSTS(clientId), id);
+}

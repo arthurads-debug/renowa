@@ -2,6 +2,7 @@
 import { h, icon, int, money, pct, safeDiv, today, fmtMonth, cap, daysBetween } from "../util.js";
 import { context, kpisFor, narrative, PROFILE_TEXT } from "../model.js";
 import { card, kpiGrid, statusChip, loadingState, dayLabel, postThumb, accountsStrip } from "../components.js";
+import { funnelCard } from "../funnel3d.js";
 
 export function renderOverview(view, state, helpers) {
   if (!state.metrics) { view.replaceChildren(loadingState()); return; }
@@ -83,10 +84,22 @@ export function renderOverview(view, state, helpers) {
       }, "Registrar vendas") : null);
   }
 
+  // ---------- Funil 3D (mantido entre as atualizações ao vivo se os números não mudarem) ----------
+  const cur = ctx.cur;
+  const stages = [
+    { label: "Impressões", value: cur.impressions },
+    { label: "Cliques", value: cur.clicks },
+    { label: c.resultLabel || "Resultados", value: cur.results },
+    ...(ctx.sales?.cur?.count ? [{ label: "Vendas informadas", value: ctx.sales.cur.count }] : []),
+  ];
+  const fkey = stages.map((s) => Math.round(s.value)).join("|");
+  if (view._funnelKey !== fkey || !view._funnel) { view._funnelKey = fkey; view._funnel = funnelCard(stages); }
+
   view.replaceChildren(...[
     accountsStrip(c),
     hero,
     kpiGrid(kpis, { partial: false }),
+    view._funnel,
     salesCta,
     h("div", { class: "grid-2" }, [nextCard, noteCard, socialCard].filter(Boolean)),
     h("p", { class: "fineprint" }, footnote(c)),

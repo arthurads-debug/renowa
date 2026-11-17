@@ -84,7 +84,7 @@ export function publicProfile(c, viewer = "client") {
     has: {
       instagram: !!c.instagram?.userId,
       facebook: !!c.facebook?.pageId,
-      calendar: !!sheets.calendar,
+      calendar: !!sheets.calendar || c.calendar !== false,
       sales: !!sheets.sales,
       reports: !!sheets.reports,
     },

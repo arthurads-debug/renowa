@@ -9,6 +9,10 @@ import me from "./_routes/me.js";
 import metrics from "./_routes/metrics.js";
 import social from "./_routes/social.js";
 import signup from "./_routes/signup.js";
+import posts from "./_routes/posts.js";
+import { metaOAuth, googleOAuth } from "./_routes/oauth.js";
+import adminIntegrations from "./_routes/admin/integrations.js";
+import adminPosts from "./_routes/admin/posts.js";
 import adminAccounts from "./_routes/admin/accounts.js";
 import adminClients from "./_routes/admin/clients.js";
 import adminImpersonate from "./_routes/admin/impersonate.js";
@@ -17,7 +21,11 @@ import adminLogin from "./_routes/admin/login.js";
 import adminMe from "./_routes/admin/me.js";
 
 const ROUTES = {
-  content, lead, login, logout, me, metrics, social, signup,
+  content, lead, login, logout, me, metrics, social, signup, posts,
+  "oauth/meta": metaOAuth,
+  "oauth/google": googleOAuth,
+  "admin/integrations": adminIntegrations,
+  "admin/posts": adminPosts,
   "admin/accounts": adminAccounts,
   "admin/clients": adminClients,
   "admin/impersonate": adminImpersonate,

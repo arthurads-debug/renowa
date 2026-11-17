@@ -562,3 +562,72 @@ a.post:hover { background: var(--bg); }
   .wait__core, .wait__core svg, .wait__ring, .wait__orbit, .wait__dots i, .wait > *, .wait__steps li.is-now span { animation: none !important; }
   .wait__ring { display: none; }
 }
+
+/* Calendário do cliente: Mês · Semana · Lista */
+.cal-switch button { padding: 6px 12px; }
+.cal-pane { animation: calPane .35s cubic-bezier(.2,.8,.2,1); }
+@keyframes calPane { from { opacity: 0; transform: translateY(6px); } }
+.cal-pane--mes .cal { display: grid !important; }
+.cal-pane--lista .agenda--cal { display: grid !important; }
+.wk { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.wk__col { min-height: 220px; padding: 8px; border-radius: 14px; background: var(--bg); display: grid; align-content: start; gap: 6px; }
+.wk__col.is-today { background: rgba(30,18,234,.06); box-shadow: inset 0 0 0 1.5px var(--brand); }
+.wk__h { display: flex; justify-content: space-between; align-items: baseline; padding: 2px 4px 6px; }
+.wk__h span { font-size: 12px; font-weight: 700; color: var(--ink-3); }
+.wk__h strong { font-size: 1.3rem; font-weight: 800; }
+.wk__item { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: start; padding: 8px; border-radius: 10px; text-align: left; font-size: 12.5px; font-weight: 600; background: #fff; border: 1px solid var(--line); transition: transform .15s, box-shadow .15s; }
+.wk__item:hover { transform: translateY(-1px); box-shadow: 0 8px 18px -10px rgba(10,15,44,.4); }
+.wk__item small { display: block; font-weight: 500; font-size: 11.5px; opacity: .75; }
+.wk__net { width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center; color: #fff; font-style: normal; font-size: 10px; font-weight: 800; }
+.wk__none { color: var(--ink-3); text-align: center; padding-top: 12px; }
+.detail__note { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1.5px solid #CFD3E2; font: inherit; resize: vertical; }
+.detail__btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.detail__fb { padding: 10px 12px; border-radius: 12px; background: var(--warn-bg); font-size: 14px; }
+@media (max-width: 760px) {
+  .wk { grid-template-columns: minmax(0, 1fr); }
+  .wk__col { min-height: 0; }
+  .cal-pane--mes .cal__title { display: none; }
+  .cal-pane--mes .cal__cell { min-height: 64px; }
+}
+.wk__item { color: var(--ink); border-left: 4px solid #8A90AA; }
+.wk--producao { border-left-color: #1E12EA; }
+.wk--aprovacao { border-left-color: var(--accent); background: #FFF7F2; }
+.wk--aprovado { border-left-color: var(--good); }
+.wk--publicado { border-left-color: var(--ink); opacity: .8; }
+
+/* ---------- Relatórios: período personalizado ---------- */
+.range-pop { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-top: 10px; padding: 12px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 16px 40px -20px rgba(10,15,44,.35); animation: popIn .2s ease; }
+.range-pop label { display: grid; gap: 4px; font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
+.range-pop input { height: 38px; padding: 0 10px; border-radius: 10px; border: 1.5px solid #CFD3E2; font: inherit; }
+@keyframes popIn { from { opacity: 0; transform: translateY(-6px); } }
+
+/* ---------- Movimento ---------- */
+.m-in { animation: mIn .7s cubic-bezier(.2,.8,.2,1) both; animation-delay: var(--d, 0ms); }
+@keyframes mIn { from { opacity: 0; transform: translateY(16px) scale(.985); } }
+.kpi, .hero-card, .card, .note-card { transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s; transform-style: preserve-3d; }
+.is-tilt { transform: perspective(900px) rotateX(var(--rx, 0)) rotateY(var(--ry, 0)) translateY(-2px); box-shadow: 0 22px 40px -24px rgba(10,15,44,.45); position: relative; }
+.kpi.is-tilt::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: radial-gradient(240px circle at var(--gx, 50%) var(--gy, 50%), rgba(255,255,255,.35), transparent 60%); mix-blend-mode: soft-light; }
+.kpi.is-tick { animation: tick .6s ease; }
+@keyframes tick { 30% { box-shadow: 0 0 0 3px rgba(30,18,234,.25); } }
+svg.is-anim .bar { transform-box: fill-box; transform-origin: 50% 100%; animation: barUp .8s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i, 0) * 14ms); }
+@keyframes barUp { from { transform: scaleY(0); } }
+svg.is-anim .line { stroke-dasharray: var(--len); stroke-dashoffset: var(--len); animation: lineDraw 1.4s cubic-bezier(.4,0,.2,1) forwards; }
+@keyframes lineDraw { to { stroke-dashoffset: 0; } }
+.live.is-on .live__dot, #live.is-on i { animation: pulse 1.6s infinite; }
+
+/* ---------- Funil 3D ---------- */
+.f3d { overflow: hidden; }
+.f3d__body { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 18px; align-items: center; }
+.f3d__stage { position: relative; height: 340px; border-radius: 18px; background: radial-gradient(ellipse 60% 70% at 50% 40%, rgba(30,18,234,.35), transparent 70%), #08080F; cursor: grab; }
+.f3d__stage:active { cursor: grabbing; }
+.f3d__stage canvas { display: block; width: 100% !important; height: 100% !important; }
+.f3d__stage.is-flat::after { content: "Seu navegador não mostra 3D: veja os números ao lado."; position: absolute; inset: 0; display: grid; place-items: center; padding: 20px; text-align: center; color: rgba(255,255,255,.7); font-size: 14px; }
+.f3d__labels { list-style: none; display: grid; gap: 10px; counter-reset: f; }
+.f3d__labels li { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 2px 12px; padding: 12px 14px 12px 18px; border-radius: 14px; background: var(--bg); position: relative; }
+.f3d__labels li::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 4px; border-radius: 4px; background: var(--c); }
+.f3d__name { font-weight: 700; }
+.f3d__labels strong { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; }
+.f3d__labels small { grid-column: 1 / -1; color: var(--ink-3); font-size: 12.5px; }
+@media (max-width: 860px) { .f3d__body { grid-template-columns: minmax(0, 1fr); } .f3d__stage { height: 280px; } }
+@media (prefers-reduced-motion: reduce) { .m-in, svg.is-anim .bar, svg.is-anim .line, .kpi.is-tick { animation: none !important; } .is-tilt { transform: none; } }
+@media print { .f3d { display: none; } }

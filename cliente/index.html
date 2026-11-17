@@ -145,7 +145,14 @@
             <button role="radio" data-range="month">Este mês</button>
             <button role="radio" data-range="lastmonth">Mês passado</button>
             <button role="radio" data-range="90">90 dias</button>
+            <button role="radio" data-range="custom" id="range-custom-btn">Personalizado</button>
           </div>
+          <form class="range-pop" id="range-pop" hidden>
+            <label>De <input type="date" id="range-from" required /></label>
+            <label>Até <input type="date" id="range-to" required /></label>
+            <button class="btn btn--primary btn--sm" type="submit">Aplicar</button>
+            <button class="btn btn--ghost btn--sm" type="button" id="range-cancel">Cancelar</button>
+          </form>
         </header>
         <div class="source-alert" id="source-alert" role="status" hidden></div>
         <div class="view" id="view"></div>

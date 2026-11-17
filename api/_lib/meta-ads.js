@@ -1,6 +1,7 @@
 // Meta Marketing API (Facebook/Instagram Ads) — insights por campanha e por dia + alcance do período.
 // Docs: https://developers.facebook.com/docs/marketing-api/insights
 import crypto from "node:crypto";
+import { metaAuth } from "./connections.js";
 
 const VERSION = () => process.env.META_API_VERSION || "v21.0";
 
@@ -9,22 +10,12 @@ const sumActions = (list, types) =>
 
 const actId = (id) => (String(id).startsWith("act_") ? id : `act_${id}`);
 
-function token() {
-  const t = process.env.META_ACCESS_TOKEN;
-  if (!t) throw new Error("Variável META_ACCESS_TOKEN não configurada");
-  return t;
-}
-
-function withProof(params, tk) {
-  if (process.env.META_APP_SECRET) {
-    params.set("appsecret_proof", crypto.createHmac("sha256", process.env.META_APP_SECRET).update(tk).digest("hex"));
-  }
-  return params;
-}
-
-// tk: token alternativo (ex.: token de página). Padrão: token do Usuário do Sistema.
-export async function graphGet(path, params = new URLSearchParams(), tk = token()) {
-  let url = `https://graph.facebook.com/${VERSION()}/${path}?${withProof(params, tk)}`;
+// tk: token alternativo (ex.: token de página). Padrão: Usuário do Sistema (env) ou o login feito no painel.
+export async function graphGet(path, params = new URLSearchParams(), tk) {
+  const auth = await metaAuth();
+  tk = tk || auth.token;
+  if (auth.secret) params.set("appsecret_proof", crypto.createHmac("sha256", auth.secret).update(tk).digest("hex"));
+  let url = `https://graph.facebook.com/${VERSION()}/${path}?${params}`;
   const out = [];
   let first = null;
   while (url) {

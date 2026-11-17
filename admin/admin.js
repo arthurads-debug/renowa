@@ -5,6 +5,8 @@ import { netBadge } from "/cliente/assets/components.js";
 import { demoRecords, saveDemoRecords } from "/cliente/assets/demo.js";
 import { initLeads, STAGES } from "/admin/leads.js";
 import { initNav, KEY_HINT } from "/admin/nav.js";
+import { initIntegrations } from "/admin/integrations.js";
+import { initCalendar } from "/admin/calendar.js";
 
 const BRAND = "Renowa";
 
@@ -152,7 +154,8 @@ async function showApp() {
 }
 
 /* ---------- Abas: Leads (CRM) e Clientes ---------- */
-const TABS = ["leads", "clientes"];
+let integrations = null, calendar = null;
+const TABS = ["leads", "clientes", "calendario", "integracoes"];
 const currentTab = () => (TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "leads");
 function showTab(tab) {
   TABS.forEach((t) => {
@@ -160,6 +163,8 @@ function showTab(tab) {
     $$(`[data-tab="${t}"]`).forEach((link) => (t === tab ? link.setAttribute("aria-current", "page") : link.removeAttribute("aria-current")));
   });
   window.scrollTo({ top: 0 });
+  if (tab === "integracoes") integrations?.load();
+  if (tab === "calendario") calendar?.load();
   if (location.hash.slice(1) !== tab) history.replaceState(null, "", `#${tab}`);
 }
 window.addEventListener("hashchange", () => showTab(currentTab()));
@@ -167,6 +172,7 @@ window.addEventListener("hashchange", () => showTab(currentTab()));
 async function refreshList() {
   try { state.clients = await backend.list(); } catch (e) { if (e.message !== "401") toast(e.message); }
   renderList();
+  if (currentTab() === "calendario") calendar?.load();
 }
 
 function renderSetup() {
@@ -484,6 +490,8 @@ $("#btn-logout").addEventListener("click", async () => {
 });
 
 const leads = initLeads({ state, api, toast, openEditor, showTab: (t) => showTab(t) });
+integrations = initIntegrations({ state, api, toast });
+calendar = initCalendar({ state, api, toast });
 
 /* ---------- Busca rápida: qualquer função, lead ou cliente em um lugar ---------- */
 const copy = async (text, ok) => { try { await navigator.clipboard.writeText(text); toast(ok); } catch { prompt("Copie o link:", text); } };
@@ -496,9 +504,13 @@ const nav = initNav(() => {
     ...(L.some((l) => l.etapa === "novo") ? [{ group: "Precisa da sua atenção", icon: "leads", label: "Leads novos para atender", hint: `${L.filter((l) => l.etapa === "novo").length} aguardando`, run: () => { go("leads")(); leads.setStage("novo"); } }] : []),
     { group: "Ir para", icon: "leads", label: "Leads · aplicações do site", hint: "CRM", keywords: "crm funil propostas", run: go("leads") },
     { group: "Ir para", icon: "clients", label: "Clientes · relatórios", hint: pending.length ? `${pending.length} aguardando liberação` : "", keywords: "relatorios contas", run: go("clientes") },
+    { group: "Ir para", icon: "report", label: "Calendário editorial", hint: "montar posts dos clientes", keywords: "conteudo posts agenda publicacoes", run: go("calendario") },
+    { group: "Ir para", icon: "link", label: "Integrações · Facebook e Google", hint: "conectar contas", keywords: "meta google ads instagram conectar login token", run: go("integracoes") },
     { group: "Ir para", icon: "site", label: "Abrir o site (proposta)", hint: "nova aba", keywords: "home pagina inicial", run: () => window.open("/", "_blank", "noopener") },
     { group: "Ir para", icon: "portal", label: "Área do Cliente", hint: "nova aba", keywords: "portal login cliente", run: () => window.open("/cliente/", "_blank", "noopener") },
     { group: "Ações", icon: "plus", label: "Cadastrar novo cliente", keywords: "criar adicionar", run: () => { go("clientes")(); openEditor(null); } },
+    { group: "Ações", icon: "plus", label: "Nova publicação no calendário", keywords: "post agendar conteudo", run: () => { go("calendario")(); setTimeout(() => calendar.open(null), 300); } },
+    ...state.clients.filter((c) => !c.pending).map((c) => ({ group: "Calendário", icon: "report", label: `Calendário de ${c.name}`, keywords: "posts conteudo agenda", searchOnly: true, run: () => { go("calendario")(); } })),
     { group: "Ações", icon: "link", label: "Copiar link do site", keywords: "compartilhar url", run: () => copy(location.origin + "/", "Link do site copiado.") },
     { group: "Ações", icon: "refresh", label: "Atualizar leads e clientes", keywords: "recarregar", run: async () => { await Promise.all([leads.refresh(), refreshList()]); toast("Atualizado."); } },
     ...STAGES.map((s) => ({ group: "Filtrar leads", icon: "filter", label: `Leads: ${s.name}`, hint: `${L.filter((l) => l.etapa === s.v).length}`, keywords: "etapa funil", searchOnly: true, run: () => { go("leads")(); leads.setStage(s.v); } })),

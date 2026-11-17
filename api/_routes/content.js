@@ -4,6 +4,7 @@ import { findById } from "../_lib/clients.js";
 import { getSession } from "../_lib/session.js";
 import { cached } from "../_lib/cache.js";
 import { fetchCalendar, fetchSales, fetchReports } from "../_lib/sheets.js";
+import { readPosts } from "../_lib/store.js";
 
 const TTL = 120_000; // planilhas mudam com frequência: 2 min
 
@@ -26,6 +27,11 @@ export default async function handler(req, res) {
       try { out[k] = await p; }
       catch (e) { console.error(`[content] ${k} ${client.id}:`, e); out.errors.push(k); }
     }));
+    // Calendário montado no painel da agência (aprovação feita aqui mesmo, sem planilha)
+    try {
+      const own = (await readPosts(client.id)).map((p) => ({ ...p, source: "painel" }));
+      out.calendar = [...(out.calendar || []), ...own];
+    } catch (e) { console.error(`[content] posts ${client.id}:`, e); out.errors.push("calendar"); out.calendar ||= []; }
     return json(res, 200, out);
   } catch (err) {
     return fail(res, err);

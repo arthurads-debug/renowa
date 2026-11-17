@@ -58,6 +58,8 @@
       <nav class="adm__tabs" aria-label="Seções do painel">
         <a href="#leads" class="adm__tab" data-tab="leads">Leads <span class="adm__badge" id="tab-badge-leads" hidden></span></a>
         <a href="#clientes" class="adm__tab" data-tab="clientes">Clientes <span class="adm__badge" id="tab-badge-clientes" hidden></span></a>
+        <a href="#calendario" class="adm__tab" data-tab="calendario">Calendário</a>
+        <a href="#integracoes" class="adm__tab" data-tab="integracoes">Integrações</a>
       </nav>
       <button type="button" class="adm__find" id="btn-find" aria-keyshortcuts="Meta+K Control+K /">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5" /></svg>
@@ -108,14 +110,39 @@
       </header>
       <div class="clients" id="clients"></div>
       </section>
+
+      <!-- ===== Calendário editorial ===== -->
+      <section id="tab-calendario" class="tabview" hidden>
+        <header class="page__head">
+          <div>
+            <p class="mono page__kicker">Conteúdo</p>
+            <h1 class="page__title">Calendário editorial</h1>
+            <p class="page__sub">Monte o calendário de cada cliente. Ele aparece na Área do Cliente, onde o cliente aprova os posts.</p>
+          </div>
+        </header>
+        <div id="calendar-admin"></div>
+      </section>
+
+      <!-- ===== Integrações ===== -->
+      <section id="tab-integracoes" class="tabview" hidden>
+        <header class="page__head">
+          <div>
+            <p class="mono page__kicker">Contas</p>
+            <h1 class="page__title">Integrações</h1>
+            <p class="page__sub">Conecte o Facebook e o Google uma vez. Todas as contas que esses logins enxergam ficam disponíveis para os clientes.</p>
+          </div>
+        </header>
+        <div id="integrations"></div>
+      </section>
     </main>
 
     <!-- Celular: navegação sempre à mão -->
     <nav class="adm__dock" aria-label="Navegação do painel">
       <a href="#leads" data-tab="leads"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7" /></svg><span>Leads</span><i class="adm__dot" id="dock-badge-leads" hidden></i></a>
       <a href="#clientes" data-tab="clientes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" /></svg><span>Clientes</span><i class="adm__dot" id="dock-badge-clientes" hidden></i></a>
+      <a href="#calendario" data-tab="calendario"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4" /></svg><span>Calendário</span></a>
       <button type="button" id="dock-find"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5" /></svg><span>Buscar</span></button>
-      <a href="/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg><span>Site</span></a>
+      <a href="#integracoes" data-tab="integracoes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7H6a5 5 0 0 0 0 10h3M15 7h3a5 5 0 0 1 0 10h-3M8 12h8" /></svg><span>Contas</span></a>
     </nav>
   </div>
 
@@ -125,6 +152,15 @@
     <section class="drawer__panel" role="dialog" aria-modal="true" aria-labelledby="editor-title">
       <button class="icon-btn drawer__close" data-close aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg></button>
       <div id="editor"></div>
+    </section>
+  </div>
+
+  <!-- Publicação do calendário -->
+  <div class="drawer" id="post-drawer" hidden>
+    <div class="drawer__backdrop" data-close></div>
+    <section class="drawer__panel" role="dialog" aria-modal="true" aria-labelledby="post-title">
+      <button class="icon-btn drawer__close" data-close aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg></button>
+      <div id="post-form"></div>
     </section>
   </div>
 

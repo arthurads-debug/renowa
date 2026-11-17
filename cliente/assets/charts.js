@@ -233,6 +233,7 @@ export function renderChart(container, cfg) {
   });
 
   container.append(svg);
+  animateChart(svg, cfg, total);
   if (container._showTable) container.append(buildTable(cfg));
 }
 
@@ -251,3 +252,17 @@ const ro = new ResizeObserver((entries) => {
   }
 });
 export const observe = (c) => ro.observe(c);
+
+// Animação de entrada: barras crescem da base, linhas se desenham.
+const seen = new Map();
+function animateChart(svg, cfg, total) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const key = cfg.ariaLabel || cfg.type;
+  const sig = `${cfg.labels.length}|${cfg.labels[0]}|${Math.round(total)}`;
+  if (seen.get(key) === sig) return;
+  seen.set(key, sig);
+  svg.classList.add("is-anim");
+  svg.querySelectorAll(".bar").forEach((b, i) => b.style.setProperty("--i", String(i % 60)));
+  svg.querySelectorAll(".line").forEach((p) => { const len = p.getTotalLength ? p.getTotalLength() : 1000; p.style.setProperty("--len", String(Math.ceil(len))); });
+  setTimeout(() => svg.classList.remove("is-anim"), 2200);
+}

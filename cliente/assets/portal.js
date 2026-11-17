@@ -3,6 +3,7 @@ import { h, $, $$, icon, setCurrency, iso, today, addDays, parseISO, daysBetween
 import { api, createSource, SessionExpired } from "./data.js";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD, demoClientByEmail, demoClientById } from "./demo.js";
 import { PROFILE_TEXT } from "./model.js";
+import { countUp, enter, tilt } from "./motion.js";
 import { renderOverview } from "./views/overview.js";
 import { renderAds } from "./views/ads.js";
 import { renderSocial } from "./views/social.js";
@@ -11,7 +12,7 @@ import { renderHistory } from "./views/history.js";
 
 const CONFIG = {
   brand: "Renowa",
-  refreshSeconds: 60,
+  refreshSeconds: 30,
   // Sem API (ex.: servidor local estático) o portal abre em modo demonstração. false desliga de vez.
   allowDemo: true,
 };
@@ -93,6 +94,11 @@ export function render() {
   view.classList.toggle("is-loading", state.loading > 0);
   try {
     ROUTES[state.route].render(view, state, { refreshContent: loadContent, toast, openDrawer, loadHistory, setPlatform });
+    // movimento: cascata quando muda a página/período; números sempre contam até o valor novo
+    const key = `${state.route}|${state.from}|${state.to}|${!!state.metrics}`;
+    if (key !== state._motionKey) { state._motionKey = key; enter(view); }
+    countUp(view);
+    tilt(view);
   } catch (e) {
     console.error(e);
     view.replaceChildren(h("div", { class: "empty-state" }, "Não foi possível exibir esta seção."));
@@ -107,6 +113,7 @@ export function render() {
    ========================================================= */
 function computeRange(preset) {
   const t = parseISO(today());
+  if (preset === "custom" && state.customFrom && state.customTo) return [state.customFrom, state.customTo];
   if (preset === "month") return [iso(new Date(t.getFullYear(), t.getMonth(), 1)), iso(t)];
   if (preset === "lastmonth") return [iso(new Date(t.getFullYear(), t.getMonth() - 1, 1)), iso(new Date(t.getFullYear(), t.getMonth(), 0))];
   const n = parseInt(preset, 10);
@@ -119,7 +126,8 @@ function setPreset(preset, reload = true) {
   [state.from, state.to] = computeRange(preset);
   const len = daysBetween(state.from, state.to);
   state.prevTo = iso(addDays(state.from, -1));
-  state.prevFrom = preset === "lastmonth" || preset === "month"
+  state.prevFrom = preset === "custom" ? iso(addDays(state.from, -len))
+    : preset === "lastmonth" || preset === "month"
     ? iso(new Date(parseISO(state.from).getFullYear(), parseISO(state.from).getMonth() - 1, 1))
     : iso(addDays(state.from, -len));
   updateSub();
@@ -127,8 +135,32 @@ function setPreset(preset, reload = true) {
 }
 $("#range-presets").addEventListener("click", (e) => {
   const b = e.target.closest("[data-range]");
-  if (b) setPreset(b.dataset.range);
+  if (!b) return;
+  if (b.dataset.range === "custom") {
+    const pop = $("#range-pop");
+    pop.hidden = !pop.hidden;
+    if (!pop.hidden) {
+      $("#range-from").value = state.from; $("#range-to").value = state.to;
+      $("#range-from").max = $("#range-to").max = today();
+      $("#range-from").focus();
+    }
+    return;
+  }
+  $("#range-pop").hidden = true;
+  setPreset(b.dataset.range);
 });
+$("#range-pop").addEventListener("submit", (e) => {
+  e.preventDefault();
+  let f = $("#range-from").value, t = $("#range-to").value;
+  if (!f || !t) return;
+  if (f > t) [f, t] = [t, f];
+  if (t > today()) t = today();
+  if (daysBetween(f, t) > 400) { toast("Escolha um período de até 13 meses."); return; }
+  state.customFrom = f; state.customTo = t;
+  $("#range-pop").hidden = true;
+  setPreset("custom");
+});
+$("#range-cancel").addEventListener("click", () => ($("#range-pop").hidden = true));
 
 function setPlatform(p) { state.platform = p; render(); }
 
@@ -203,7 +235,7 @@ function setLive(ok, message) {
   live.classList.toggle("is-on", ok);
   live.classList.toggle("is-error", !ok);
   $("#live-text").textContent = ok
-    ? `Atualizado às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+    ? `Ao vivo · atualizado às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
     : message || "Sem conexão";
 }
 $("#btn-refresh").addEventListener("click", () => refreshAll());

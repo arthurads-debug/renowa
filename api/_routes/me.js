@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   try {
     const session = getSession(req);
     const client = session && (await findById(session.sub));
-    if (!client) return json(res, 401, { error: "Sessão expirada. Entre novamente." });
+    if (!client || (client.active === false && session.by !== "admin")) return json(res, 401, { error: "Sessão expirada. Entre novamente." });
     return json(res, 200, { client: publicProfile(client, session.by === "admin" ? "agency" : "client") });
   } catch (err) {
     return fail(res, err);

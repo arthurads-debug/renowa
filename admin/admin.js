@@ -99,6 +99,13 @@ const backend = {
     saveDemoRecords(list);
     return rec;
   },
+  async setActive(id, active) {
+    if (!state.demo) return (await api(`/api/admin/clients?id=${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ active }) })).client;
+    const list = demoRecords();
+    const c = list.find((x) => x.id === id);
+    if (c) { c.active = active; delete c.pending; saveDemoRecords(list); }
+    return c;
+  },
   async remove(id) {
     if (!state.demo) return api(`/api/admin/clients?id=${encodeURIComponent(id)}`, { method: "DELETE" });
     saveDemoRecords(demoRecords().filter((c) => c.id !== id));
@@ -189,8 +196,10 @@ function netLine(platform, value, label) {
 
 function renderList() {
   const q = state.search.trim().toLowerCase();
-  const list = state.clients.filter((c) => !q || `${c.name} ${c.email} ${c.contactName || ""}`.toLowerCase().includes(q));
-  $("#clients-sub").textContent = `${state.clients.length} cliente${state.clients.length === 1 ? "" : "s"} · cada um vê só as próprias contas`;
+  const list = state.clients.filter((c) => !q || `${c.name} ${c.email} ${c.contactName || ""}`.toLowerCase().includes(q))
+    .sort((a, b) => (b.pending ? 1 : 0) - (a.pending ? 1 : 0));
+  const waiting = state.clients.filter((c) => c.pending).length;
+  $("#clients-sub").textContent = `${state.clients.length} cliente${state.clients.length === 1 ? "" : "s"}${waiting ? ` · ${waiting} aguardando liberação` : ""} · cada um vê só as próprias contas`;
   const box = $("#clients");
   if (!list.length) {
     box.replaceChildren(h("div", { class: "empty-state clients__empty" },
@@ -203,15 +212,26 @@ function renderList() {
     h("div", { class: "cli__head" },
       h("span", { class: "avatar", "aria-hidden": "true" }, initials(c.name)),
       h("div", {}, h("p", { class: "cli__name" }, c.name), h("p", { class: "cli__mail" }, c.email))),
-    h("div", {}, h("span", { class: "chip chip--profile" }, PROFILE_NAME[c.profile] || "Contato e loja física"), c.active === false ? h("span", { class: "chip st--plan" }, "Acesso pausado") : null),
+    h("div", {}, h("span", { class: "chip chip--profile" }, PROFILE_NAME[c.profile] || "Contato e loja física"), c.pending ? h("span", { class: "chip st--wait" }, "Aguardando liberação") : c.active === false ? h("span", { class: "chip st--plan" }, "Acesso pausado") : null),
+    c.pending ? h("p", { class: "cli__mail" }, `Cadastro feito pelo site${c.contactName ? ` por ${c.contactName}` : ""}${c.phone ? ` · ${c.phone}` : ""}`) : null,
     h("div", { class: "cli__nets" },
       netLine("google", c.googleAds?.customerId && `${c.googleAds.name || "Google Ads"} · ${c.googleAds.customerId}`, "Google Ads"),
       netLine("meta", c.metaAds?.adAccountId && `${c.metaAds.name || "Meta Ads"} · ${c.metaAds.adAccountId}`, "Meta Ads"),
       netLine("facebook", c.facebook?.pageId && (c.facebook.name || c.facebook.pageId), "Facebook"),
       netLine("instagram", c.instagram?.userId && `@${c.instagram.username || c.instagram.userId}`, "Instagram")),
     h("div", { class: "cli__actions" },
+      c.active === false ? h("button", { class: "btn btn--primary btn--sm", onclick: (e) => approve(c, e.currentTarget) }, "Liberar acesso") : null,
       h("button", { class: "btn btn--ghost btn--sm", onclick: () => openEditor(c) }, "Editar e contas"),
       h("button", { class: "btn btn--primary btn--sm", onclick: () => backend.openReport(c.id).catch((e) => toast(e.message)) }, "Ver relatório")))));
+}
+
+async function approve(c, btn) {
+  btn.disabled = true;
+  try {
+    await backend.setActive(c.id, true);
+    toast(`Acesso de ${c.name} liberado.`);
+    await refreshList();
+  } catch (e) { btn.disabled = false; toast(e.message); }
 }
 
 $("#search").addEventListener("input", (e) => { state.search = e.target.value; renderList(); });

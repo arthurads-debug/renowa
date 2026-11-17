@@ -38,7 +38,7 @@
     <main class="login__main">
       <form class="login__form" id="login-form" novalidate>
         <h1>Entrar</h1>
-        <p class="login__hint">Use o e-mail e a senha enviados pela agência.</p>
+        <p class="login__hint">Use o e-mail e a senha do seu cadastro.</p>
 
         <div class="demo-hint" id="demo-hint" hidden>
           <strong>Modo demonstração</strong> — escolha um tipo de cliente para ver como o painel se adapta:
@@ -46,7 +46,7 @@
         </div>
 
         <label for="login-email">E-mail</label>
-        <input id="login-email" name="email" type="email" autocomplete="username" required />
+        <input id="login-email" name="email" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required />
 
         <label for="login-pass">Senha</label>
         <div class="pass">
@@ -56,8 +56,33 @@
 
         <p class="form-error" id="login-error" role="alert"></p>
         <button class="btn btn--primary btn--block" type="submit"><span>Entrar</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg></button>
-        <p class="login__foot">Esqueceu a senha? Fale com seu gerente de conta.</p>
+        <p class="login__foot">Ainda não tem acesso? <button type="button" class="link" id="to-signup">Criar meu perfil</button></p>
+        <p class="login__foot login__foot--small">Esqueceu a senha? Fale com seu gerente de conta.</p>
       </form>
+
+      <form class="login__form" id="signup-form" novalidate hidden>
+        <h1>Criar perfil</h1>
+        <p class="login__hint">Preencha seus dados. A agência confere o cadastro e libera o seu acesso ao painel.</p>
+        <label for="su-company">Empresa</label>
+        <input id="su-company" type="text" autocomplete="organization" required />
+        <label for="su-name">Seu nome</label>
+        <input id="su-name" type="text" autocomplete="name" required />
+        <label for="su-email">E-mail</label>
+        <input id="su-email" type="email" autocomplete="email" required />
+        <label for="su-phone">WhatsApp</label>
+        <input id="su-phone" type="tel" autocomplete="tel" inputmode="tel" />
+        <label for="su-pass">Crie uma senha</label>
+        <input id="su-pass" type="password" autocomplete="new-password" minlength="8" required />
+        <p class="form-error" id="signup-error" role="alert"></p>
+        <button class="btn btn--primary btn--block" type="submit"><span>Criar perfil</span></button>
+        <p class="login__foot">Já tem acesso? <button type="button" class="link" id="to-login">Entrar</button></p>
+      </form>
+
+      <div class="login__form" id="signup-done" hidden>
+        <h1>Cadastro enviado</h1>
+        <p class="login__hint">Recebemos o seu perfil. Assim que a agência liberar o acesso, você entra com o e-mail e a senha que acabou de criar.</p>
+        <button type="button" class="btn btn--primary btn--block" id="done-login"><span>Voltar para o login</span></button>
+      </div>
     </main>
   </div>
 

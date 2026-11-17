@@ -25,6 +25,11 @@ export async function findByEmail(email) {
   const e = String(email || "").trim().toLowerCase();
   return (await loadClients()).find((c) => String(c.email).toLowerCase() === e && c.active !== false) || null;
 }
+// Inclui perfis bloqueados ou aguardando liberação (o login decide a mensagem)
+export async function findByEmailAny(email) {
+  const e = String(email || "").trim().toLowerCase();
+  return (await loadClients()).find((c) => String(c.email).toLowerCase() === e) || null;
+}
 export async function findById(id) {
   return (await loadClients()).find((c) => c.id === id) || null;
 }

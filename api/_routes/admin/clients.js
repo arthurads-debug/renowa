@@ -25,6 +25,9 @@ function clean(input, existing) {
     currency: /^[A-Z]{3}$/.test(input.currency || "") ? input.currency : "BRL",
     note: str(input.note, 600),
     active: input.active !== false,
+    ...(existing?.pending && input.active === false ? { pending: true } : {}),
+    ...(existing?.phone ? { phone: existing.phone } : {}),
+    ...(existing?.createdAt ? { createdAt: existing.createdAt } : {}),
     passwordHash: existing?.passwordHash || null,
     updatedAt: new Date().toISOString(),
   };
@@ -83,6 +86,21 @@ export default async function handler(req, res) {
       await writeClient(client);
       invalidateClients();
       return json(res, 200, { client: adminView(client) });
+    }
+
+    // PATCH ?id=  { active: true|false } — libera ou pausa o acesso sem abrir o editor
+    if (req.method === "PATCH") {
+      const id = new URL(req.url, "http://x").searchParams.get("id");
+      const c = list.find((x) => x.id === id);
+      if (!c) return json(res, 404, { error: "Cliente não encontrado." });
+      if (c.source === "env") return json(res, 400, { error: "Este cliente está na variável CLIENTS_JSON; altere por lá." });
+      const { active } = await readBody(req);
+      const next = { ...c, active: active !== false, updatedAt: new Date().toISOString() };
+      if (next.active) { delete next.pending; next.approvedAt = next.updatedAt; }
+      delete next.source;
+      await writeClient(next);
+      invalidateClients();
+      return json(res, 200, { client: adminView(next) });
     }
 
     if (req.method === "DELETE") {

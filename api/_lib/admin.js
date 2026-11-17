@@ -10,6 +10,9 @@ export function admins() {
     try { list = JSON.parse(process.env.ADMINS_JSON); } catch { console.error("[admin] ADMINS_JSON inválido"); }
   }
   if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD_HASH) list.push({ email: process.env.ADMIN_EMAIL, passwordHash: process.env.ADMIN_PASSWORD_HASH });
+  // Acesso provisório de demonstração (usuário "admin", senha "12345").
+  // Desliga sozinho quando ADMIN_EMAIL/ADMINS_JSON forem cadastrados, ou com DEMO_LOGINS=off.
+  if (!list.length && process.env.DEMO_LOGINS !== "off") list.push({ email: "admin", passwordHash: "pbkdf2_sha256$210000$VXq3zCX1QzzyTAMBmcvH3g==$GexyLVliqDAUMeitRJZt6YWEBtTCnYapPGP5owVQWDg=" });
   return list;
 }
 

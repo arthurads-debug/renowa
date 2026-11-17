@@ -287,8 +287,10 @@ function showApp() {
 
 async function logout() {
   if (state.client?.viewer === "agency") { store.del("demo-client"); store.del("demo-viewer"); location.href = "/admin/"; return; }
-  if (state.demo) store.del("demo-client");
-  else await api("/api/logout", { method: "POST" }).catch(() => {});
+  if (state.demo) {
+    store.del("demo-client");
+    if (store.get("demo-login")) { store.del("demo-login"); state.demo = false; }
+  } else await api("/api/logout", { method: "POST" }).catch(() => {});
   location.hash = "";
   showLogin();
 }
@@ -304,7 +306,18 @@ $(".pass__toggle").addEventListener("click", (e) => {
   e.currentTarget.setAttribute("aria-pressed", String(show));
 });
 
+// Acesso de demonstração (usuário "cliente", senha "12345"): painel com dados fictícios, sem servidor
+const DEMO_LOGIN = { user: "cliente", pass: "12345" };
+
 async function signIn(email, password) {
+  if (email.toLowerCase() === DEMO_LOGIN.user && password === DEMO_LOGIN.pass) {
+    await new Promise((r) => setTimeout(r, 350));
+    state.demo = true;
+    const c = demoClientByEmail(DEMO_ACCOUNTS[1].email) || demoClientByEmail(DEMO_ACCOUNTS[0].email);
+    store.set("demo-client", c.id);
+    store.set("demo-login", "1");
+    return c;
+  }
   if (state.demo) {
     await new Promise((r) => setTimeout(r, 350));
     const c = demoClientByEmail(email);
@@ -316,6 +329,38 @@ async function signIn(email, password) {
   if (!r.ok) throw new Error(r.data?.error || "Não foi possível entrar.");
   return r.data.client;
 }
+
+/* ---------- Cadastro: o perfil fica aguardando a liberação da agência ---------- */
+function showForm(id) {
+  ["login-form", "signup-form", "signup-done"].forEach((f) => ($("#" + f).hidden = f !== id));
+  ($("#" + id).querySelector("input") || $("#" + id).querySelector("button"))?.focus();
+}
+$("#to-signup").addEventListener("click", () => showForm("signup-form"));
+$("#to-login").addEventListener("click", () => showForm("login-form"));
+$("#done-login").addEventListener("click", () => showForm("login-form"));
+$("#signup-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const err = $("#signup-error");
+  const btn = e.currentTarget.querySelector("button[type=submit]");
+  const body = {
+    company: $("#su-company").value.trim(), contactName: $("#su-name").value.trim(),
+    email: $("#su-email").value.trim(), phone: $("#su-phone").value.trim(), password: $("#su-pass").value,
+  };
+  if (!body.company || !body.contactName || !body.email || !body.password) { err.textContent = "Preencha empresa, nome, e-mail e senha."; return; }
+  if (body.password.length < 8) { err.textContent = "A senha precisa ter pelo menos 8 caracteres."; return; }
+  btn.disabled = true; btn.querySelector("span").textContent = "Enviando…"; err.textContent = "";
+  try {
+    const r = await api("/api/signup", { method: "POST", body: JSON.stringify(body) });
+    if (!r.ok) throw new Error(r.data?.error || "Não foi possível enviar agora.");
+    e.currentTarget.reset();
+    $("#login-email").value = body.email;
+    showForm("signup-done");
+  } catch (ex) {
+    err.textContent = ex.message;
+  } finally {
+    btn.disabled = false; btn.querySelector("span").textContent = "Criar perfil";
+  }
+});
 
 $("#login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -350,7 +395,9 @@ async function boot() {
   let me;
   try { me = await api("/api/me"); } catch { me = { status: 0 }; }
 
+  const demoSaved = store.get("demo-login") && demoClientById(store.get("demo-client"), "client");
   if (me.status === 200) { state.client = me.data.client; showApp(); }
+  else if (me.status === 401 && demoSaved) { state.demo = true; state.client = demoSaved; showApp(); }
   else if (me.status === 401) showLogin();
   else if (CONFIG.allowDemo) {
     state.demo = true;

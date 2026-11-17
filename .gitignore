@@ -1,0 +1,9 @@
+.env
+.env.local
+.vercel
+node_modules
+.DS_Store
+
+# arquivos de produção do vídeo (pesados) e config local
+video-manifesto/
+.claude/

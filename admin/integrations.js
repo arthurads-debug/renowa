@@ -114,6 +114,7 @@ export function initIntegrations({ state, api, toast }) {
       ] : g.appReady ? [
         h("p", { class: "int__lead" }, "Entre com o Google que tem acesso às contas de anúncio dos clientes (de preferência o da sua conta de administrador, a MCC)."),
         h("a", { class: "btn btn--google btn--lg", href: connectHref("google"), onclick: connectClick }, LOGO.google(), "Continuar com Google"),
+        h("p", { class: "muted int__note" }, "Apareceu “Erro 403: access_denied”? No Google Cloud, abra ", h("a", { class: "link", href: "https://console.cloud.google.com/auth/audience", target: "_blank", rel: "noopener" }, "Público-alvo"), " e adicione o seu e-mail em Usuários de teste."),
         !g.devReady ? h("p", { class: "muted int__note" }, "Depois de conectar, cole o token de desenvolvedor para ler as campanhas.") : null,
       ] : setupGoogle(g));
   }
@@ -125,7 +126,8 @@ export function initIntegrations({ state, api, toast }) {
         h("li", {}, "No ", h("a", { class: "link", href: "https://console.cloud.google.com/apis/library/googleads.googleapis.com", target: "_blank", rel: "noopener" }, "Google Cloud"), ", ative a ", h("strong", {}, "Google Ads API"), "."),
         h("li", {}, "Em APIs e serviços → Credenciais → Criar credenciais → ", h("strong", {}, "ID do cliente OAuth"), " (Aplicativo da Web) e cole este endereço em “URIs de redirecionamento autorizados”:",
           h("div", { class: "int__uri" }, h("code", {}, g.redirectUri), copyBtn(g.redirectUri))),
-        h("li", {}, "Copie o ", h("strong", {}, "ID do cliente"), " e a ", h("strong", {}, "Chave secreta"), ". O ", h("strong", {}, "token de desenvolvedor"), " fica no Google Ads → Ferramentas → Central de API (na sua MCC).")),
+        h("li", {}, "Copie o ", h("strong", {}, "ID do cliente"), " e a ", h("strong", {}, "Chave secreta"), ". O ", h("strong", {}, "token de desenvolvedor"), " fica no Google Ads → Ferramentas → Central de API (na sua MCC)."),
+        h("li", {}, "Em ", h("a", { class: "link", href: "https://console.cloud.google.com/auth/audience", target: "_blank", rel: "noopener" }, "Google Auth Platform → Público-alvo"), ", adicione o e-mail que vai conectar em ", h("strong", {}, "Usuários de teste"), " (sem isso o Google mostra “Erro 403: access_denied”).")),
       h("div", { class: "int__form" },
         devOnly ? null : field("g-client", "ID do cliente", { placeholder: "…apps.googleusercontent.com", value: g.clientId || "" }),
         devOnly ? null : field("g-secret", "Chave secreta do cliente", { type: "password", placeholder: g.clientSecret ? `Salva (${g.clientSecret})` : "Cole aqui" }),

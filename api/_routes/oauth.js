@@ -46,7 +46,9 @@ export function makeHandler(provider) {
 
       // ---------- Volta ----------
       res.setHeader("Set-Cookie", stateCookie("", 0));
-      if (q.get("error")) return back(res, provider, "A autorização foi cancelada.");
+      if (q.get("error")) return back(res, provider, provider === "google"
+        ? "O Google recusou o acesso. Se o projeto está em modo Teste, adicione o seu e-mail em Público-alvo → Usuários de teste no Google Cloud e tente de novo."
+        : "A autorização foi cancelada ou recusada no Facebook.");
       const st = verify(q.get("state"));
       const nonce = readCookie(req, "renowa_oauth");
       if (!st || st.p !== provider || !nonce || st.n !== nonce) return back(res, provider, "A conexão expirou. Tente de novo.");

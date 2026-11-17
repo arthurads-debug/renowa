@@ -3,7 +3,8 @@
 import { h, $, $$ } from "/cliente/assets/util.js";
 import { netBadge } from "/cliente/assets/components.js";
 import { demoRecords, saveDemoRecords } from "/cliente/assets/demo.js";
-import { initLeads } from "/admin/leads.js";
+import { initLeads, STAGES } from "/admin/leads.js";
+import { initNav, KEY_HINT } from "/admin/nav.js";
 
 const BRAND = "Renowa";
 
@@ -140,6 +141,7 @@ function showLogin(msg) {
 }
 
 async function showApp() {
+  if (!state.demo) { try { localStorage.setItem("renowa-admin", "1"); } catch { /* */ } }
   $("#view-login").hidden = true;
   $("#view-app").hidden = false;
   $("#demo-banner").hidden = !state.demo;
@@ -155,9 +157,9 @@ const currentTab = () => (TABS.includes(location.hash.slice(1)) ? location.hash.
 function showTab(tab) {
   TABS.forEach((t) => {
     $(`#tab-${t}`).hidden = t !== tab;
-    const link = $(`.adm__tab[data-tab="${t}"]`);
-    if (t === tab) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current");
+    $$(`[data-tab="${t}"]`).forEach((link) => (t === tab ? link.setAttribute("aria-current", "page") : link.removeAttribute("aria-current")));
   });
+  window.scrollTo({ top: 0 });
   if (location.hash.slice(1) !== tab) history.replaceState(null, "", `#${tab}`);
 }
 window.addEventListener("hashchange", () => showTab(currentTab()));
@@ -199,6 +201,7 @@ function renderList() {
   const list = state.clients.filter((c) => !q || `${c.name} ${c.email} ${c.contactName || ""}`.toLowerCase().includes(q))
     .sort((a, b) => (b.pending ? 1 : 0) - (a.pending ? 1 : 0));
   const waiting = state.clients.filter((c) => c.pending).length;
+  [["#tab-badge-clientes", true], ["#dock-badge-clientes", false]].forEach(([sel, txt]) => { const b = $(sel); if (!b) return; if (txt) b.textContent = waiting; b.hidden = !waiting; });
   $("#clients-sub").textContent = `${state.clients.length} cliente${state.clients.length === 1 ? "" : "s"}${waiting ? ` · ${waiting} aguardando liberação` : ""} · cada um vê só as próprias contas`;
   const box = $("#clients");
   if (!list.length) {
@@ -475,11 +478,44 @@ $("#demo-fill").addEventListener("click", () => {
 });
 $("#btn-logout").addEventListener("click", async () => {
   await backend.logout();
+  try { localStorage.removeItem("renowa-admin"); } catch { /* */ }
   try { sessionStorage.removeItem("demo-admin"); } catch { /* */ }
   showLogin();
 });
 
 const leads = initLeads({ state, api, toast, openEditor, showTab: (t) => showTab(t) });
+
+/* ---------- Busca rápida: qualquer função, lead ou cliente em um lugar ---------- */
+const copy = async (text, ok) => { try { await navigator.clipboard.writeText(text); toast(ok); } catch { prompt("Copie o link:", text); } };
+const nav = initNav(() => {
+  const go = (tab) => () => { location.hash = tab; showTab(tab); };
+  const L = leads.list();
+  const pending = state.clients.filter((c) => c.pending);
+  const items = [
+    ...pending.map((c) => ({ group: "Precisa da sua atenção", icon: "check", label: `Liberar acesso de ${c.name}`, hint: c.contactName || c.email, keywords: c.email, run: () => approve(c, document.createElement("button")) })),
+    ...(L.some((l) => l.etapa === "novo") ? [{ group: "Precisa da sua atenção", icon: "leads", label: "Leads novos para atender", hint: `${L.filter((l) => l.etapa === "novo").length} aguardando`, run: () => { go("leads")(); leads.setStage("novo"); } }] : []),
+    { group: "Ir para", icon: "leads", label: "Leads · aplicações do site", hint: "CRM", keywords: "crm funil propostas", run: go("leads") },
+    { group: "Ir para", icon: "clients", label: "Clientes · relatórios", hint: pending.length ? `${pending.length} aguardando liberação` : "", keywords: "relatorios contas", run: go("clientes") },
+    { group: "Ir para", icon: "site", label: "Abrir o site (proposta)", hint: "nova aba", keywords: "home pagina inicial", run: () => window.open("/", "_blank", "noopener") },
+    { group: "Ir para", icon: "portal", label: "Área do Cliente", hint: "nova aba", keywords: "portal login cliente", run: () => window.open("/cliente/", "_blank", "noopener") },
+    { group: "Ações", icon: "plus", label: "Cadastrar novo cliente", keywords: "criar adicionar", run: () => { go("clientes")(); openEditor(null); } },
+    { group: "Ações", icon: "link", label: "Copiar link do site", keywords: "compartilhar url", run: () => copy(location.origin + "/", "Link do site copiado.") },
+    { group: "Ações", icon: "refresh", label: "Atualizar leads e clientes", keywords: "recarregar", run: async () => { await Promise.all([leads.refresh(), refreshList()]); toast("Atualizado."); } },
+    ...STAGES.map((s) => ({ group: "Filtrar leads", icon: "filter", label: `Leads: ${s.name}`, hint: `${L.filter((l) => l.etapa === s.v).length}`, keywords: "etapa funil", searchOnly: true, run: () => { go("leads")(); leads.setStage(s.v); } })),
+    ...L.map((l) => ({ group: "Leads", icon: "person", label: l.nome, hint: [l.empresa, l.whatsapp].filter(Boolean).join(" · "), keywords: `${l.email} ${l.empresa}`, searchOnly: true, run: () => { go("leads")(); leads.open(l.id); } })),
+    ...state.clients.flatMap((c) => [
+      { group: "Clientes", icon: "report", label: `${c.name} · ver relatório`, hint: c.email, keywords: c.contactName || "", searchOnly: true, run: () => backend.openReport(c.id).catch((e) => toast(e.message)) },
+      { group: "Clientes", icon: "clients", label: `${c.name} · editar e contas`, hint: c.pending ? "aguardando liberação" : "", keywords: `${c.email} ${c.contactName || ""}`, searchOnly: true, run: () => { go("clientes")(); openEditor(c); } },
+    ]),
+    { group: "Conta", icon: "out", label: "Sair do painel", searchOnly: true, run: () => $("#btn-logout").click() },
+  ];
+  return items;
+});
+$("#btn-find").addEventListener("click", () => nav.show());
+$("#dock-find").addEventListener("click", () => nav.show());
+$("#find-kbd").textContent = KEY_HINT;
+// o selo de leads novos também aparece no menu do celular
+new MutationObserver(() => { const b = $("#tab-badge-leads"), d = $("#dock-badge-leads"); if (b && d) d.hidden = b.hidden; }).observe($("#tab-badge-leads"), { attributes: true, childList: true });
 
 async function boot() {
   $$("[data-brand]").forEach((n) => (n.textContent = BRAND));

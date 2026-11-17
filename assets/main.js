@@ -169,6 +169,21 @@ window.RENOWA = {
     };
   }
 
+  /* ---------- Atalho do administrador (só aparece para quem entrou no /admin) ---------- */
+  let adminFlag = null;
+  try { adminFlag = localStorage.getItem("renowa-admin"); } catch { /* sem storage */ }
+  if (adminFlag) {
+    fetch("/api/admin/me", { credentials: "same-origin" }).then((r) => {
+      if (!r.ok) { try { localStorage.removeItem("renowa-admin"); } catch { /* */ } return; }
+      const bar = document.createElement("nav");
+      bar.className = "admin-pill";
+      bar.setAttribute("aria-label", "Atalhos do administrador");
+      bar.innerHTML = '<span class="admin-pill__tag">Admin</span><a href="/admin/#leads">Leads</a><a href="/admin/#clientes">Clientes</a><button type="button" aria-label="Esconder atalhos">×</button>';
+      bar.querySelector("button").addEventListener("click", () => bar.remove());
+      document.body.append(bar);
+    }).catch(() => {});
+  }
+
   /* ---------- 01 · Vídeo-manifesto 9:16 ---------- */
   const reel = $(".reel");
   if (reel) {

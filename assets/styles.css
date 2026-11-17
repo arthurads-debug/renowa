@@ -651,3 +651,11 @@ html:not(.js) .preloader { display: none; }
 .reel.has-video .reel__poster::after { background: linear-gradient(0deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 30%); }
 
 .svc-cta { margin-top: 40px; }
+
+/* Atalho do administrador no site */
+.admin-pill { position: fixed; z-index: 120; left: 16px; bottom: 16px; display: flex; align-items: center; gap: 4px; padding: 6px; border-radius: 999px; background: rgba(8,8,15,.92); border: 1px solid rgba(255,255,255,.14); box-shadow: 0 12px 30px -10px rgba(0,0,0,.6); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); font-size: 13px; font-weight: 600; }
+.admin-pill__tag { padding: 6px 10px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.admin-pill a { padding: 6px 12px; border-radius: 999px; color: var(--ice, #fff); }
+.admin-pill a:hover { background: rgba(255,255,255,.1); }
+.admin-pill button { width: 28px; height: 28px; border-radius: 50%; color: rgba(255,255,255,.6); font-size: 16px; }
+.admin-pill button:hover { background: rgba(255,255,255,.1); color: #fff; }

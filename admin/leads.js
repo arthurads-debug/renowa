@@ -325,5 +325,5 @@ export function initLeads({ state, api, toast, openEditor, showTab }) {
   $("#leads-search").addEventListener("input", (e) => { ls.q = e.target.value; render(); });
   $("#leads-refresh").addEventListener("click", refresh);
 
-  return { refresh, render };
+  return { refresh, render, list: () => ls.leads, open: openLead, setStage: (v) => { ls.stage = v; ls.q = ""; $("#leads-search").value = ""; render(); } };
 }

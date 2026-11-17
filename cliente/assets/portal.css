@@ -217,7 +217,7 @@ svg { display: block; }
 .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
 @media (max-width: 960px) { .grid-2 { grid-template-columns: minmax(0, 1fr); } }
 
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
 .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; display: grid; gap: 6px; align-content: start; min-width: 0; grid-template-columns: minmax(0, 1fr); }
 .kpi--hero { background: var(--ink); color: #fff; border-color: var(--ink); }
 .kpi__label { font-size: 13px; font-weight: 600; color: var(--ink-2); }

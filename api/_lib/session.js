@@ -6,10 +6,14 @@ const CLIENT = "portal_session";
 const ADMIN = "admin_session";
 const MAX_AGE = 60 * 60 * 12; // 12h
 
+// SESSION_SECRET tem prioridade. Sem ele, deriva uma chave da credencial do banco (KV/Upstash),
+// que só existe no servidor: assim o login funciona assim que o banco é ligado na Vercel.
 function secret() {
   const s = process.env.SESSION_SECRET;
-  if (!s || s.length < 32) throw Object.assign(new Error("SESSION_SECRET ausente ou curto (mínimo 32 caracteres)"), { status: 503 });
-  return s;
+  if (s && s.length >= 32) return s;
+  const kv = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (kv && kv.length >= 20) return crypto.createHash("sha256").update(`renowa-session:${kv}`).digest("base64url");
+  throw Object.assign(new Error("SESSION_SECRET ausente ou curto (mínimo 32 caracteres)"), { status: 503 });
 }
 const mac = (body) => crypto.createHmac("sha256", secret()).update(body).digest("base64url");
 

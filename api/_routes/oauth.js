@@ -78,6 +78,10 @@ export function makeHandler(provider) {
       });
       const tok = await r.json();
       if (!r.ok || !tok.refresh_token) throw new Error(`troca do código: ${JSON.stringify(tok.error || "sem refresh_token")}`);
+      // na tela do Google cada permissão tem uma caixa; sem a do Google Ads não dá para ler campanhas
+      if (!String(tok.scope || "").includes("auth/adwords")) {
+        return back(res, provider, "Faltou marcar a permissão do Google Ads. Clique em Continuar com Google de novo e marque a caixa “Gerenciar suas campanhas do Google Ads” (ou “Ver e gerenciar”) antes de continuar.");
+      }
       let email = "";
       try { email = JSON.parse(Buffer.from(String(tok.id_token).split(".")[1], "base64url").toString("utf8")).email || ""; } catch { /* sem e-mail */ }
       await setConn("google", { refreshToken: tok.refresh_token, email, connectedAt: new Date().toISOString(), by: admin.sub });

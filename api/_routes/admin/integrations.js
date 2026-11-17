@@ -21,7 +21,12 @@ async function counts(provider) {
     const g = await listGoogleAccounts();
     return { adAccounts: g.length, sample: g.slice(0, 6).map((x) => x.name) };
   } catch (e) {
-    return { error: String(e.message || e).slice(0, 300) };
+    const m = String(e.message || e);
+    if (/SCOPE_INSUFFICIENT|insufficient authentication scopes/i.test(m)) return { error: "O login do Google foi feito sem a permissão do Google Ads. Clique em Reconectar e marque a caixa do Google Ads na tela de permissões." };
+    if (/DEVELOPER_TOKEN_NOT_APPROVED|only approved for use with test accounts/i.test(m)) return { error: "O token de desenvolvedor ainda está no nível “Conta de teste”. Peça o Acesso básico na Central de API do Google Ads; quando o Google aprovar, os números aparecem sozinhos." };
+    if (/DEVELOPER_TOKEN_INVALID|developer token/i.test(m)) return { error: "O token de desenvolvedor não foi aceito pelo Google. Confira se copiou o token inteiro da Central de API." };
+    if (/USER_PERMISSION_DENIED|CUSTOMER_NOT_FOUND/i.test(m)) return { error: "O e-mail conectado não tem acesso a essa conta do Google Ads (ou à MCC informada). Confira o ID da MCC ou conecte com o e-mail que administra as contas." };
+    return { error: m.slice(0, 300) };
   }
 }
 

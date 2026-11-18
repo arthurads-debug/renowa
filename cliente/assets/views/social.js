@@ -1,14 +1,38 @@
-// SOCIAL MEDIA — Instagram e Página do Facebook do cliente, na mesma página.
+// SOCIAL MEDIA — Instagram, Página do Facebook e YouTube do cliente, na mesma página.
+// "YouTube" no seletor de redes abre a análise completa do canal.
 import { h, icon, int, pct, safeDiv, dec, parseISO } from "../util.js";
 import { card, loadingState, emptyState, postThumb, dayLabel, statusChip, netBadge } from "../components.js";
+import { renderYouTube } from "./youtube.js";
 
 const ui = { sort: "recent", format: "all", network: "all" };
-const NET_NAME = { instagram: "Instagram", facebook: "Facebook" };
+const NET_NAME = { instagram: "Instagram", facebook: "Facebook", youtube: "YouTube" };
+export const setSocialNetwork = (n) => { ui.network = n; ui.format = "all"; };
+
+// Vídeos do YouTube no mesmo formato dos posts (números do período quando houver; senão, desde a publicação)
+function ytPosts(y, from, to) {
+  return (y?.recent || []).filter((v) => v.publishedAt.slice(0, 10) >= from && v.publishedAt.slice(0, 10) <= to).map((v) => {
+    const p = v.period;
+    const likes = v.totalLikes, comments = v.totalComments;
+    return { id: v.id, network: "youtube", date: v.publishedAt, format: v.short ? "Short" : "Vídeo", caption: v.title, permalink: `https://www.youtube.com/watch?v=${v.id}`,
+      thumbnail: v.thumbnail, likes, comments, shares: p?.shares || 0, saves: 0, views: v.totalViews, reach: p?.views || v.totalViews, interactions: likes + comments + (p?.shares || 0) };
+  });
+}
 
 export function renderSocial(view, state) {
   const s = state.social;
   if (!s) { view.replaceChildren(loadingState()); return; }
+  const y = state.youtube?.connected && !state.youtube.error ? state.youtube : null;
   const nets = ["instagram", "facebook"].filter((n) => s[n]?.connected);
+  if (y) nets.push("youtube");
+  const withYt = { ...s, youtube: y ? { connected: true, username: y.channel?.handle || y.channel?.name, followers: y.channel?.subscribers || 0, posts: ytPosts(y, state.from, state.to) } : null };
+
+  // YouTube escolhido: análise completa do canal dentro de Social media
+  if (ui.network === "youtube" && y) {
+    const inner = h("div", { class: "stack" });
+    view.replaceChildren(h("div", { class: "toolbar" }, switcher(nets, () => renderSocial(view, state))), inner);
+    renderYouTube(inner, state);
+    return;
+  }
 
   // Nenhuma rede conectada: mostra o que o calendário registra como publicado
   if (!nets.length) {
@@ -27,7 +51,19 @@ export function renderSocial(view, state) {
   // ---------- Uma ficha por rede ----------
   const weeks = Math.max(1, (parseISO(state.to) - parseISO(state.from)) / (7 * 864e5));
   const netCards = h("div", { class: "split-net" }, nets.map((n) => {
-    const d = s[n];
+    const d = withYt[n];
+    if (n === "youtube") {
+      const posts = d.posts;
+      const cur = y.current;
+      return h("article", { class: "net-card net-card--yt", role: "button", tabindex: "0", onclick: () => { setSocialNetwork("youtube"); renderSocial(view, state); } },
+        h("div", { class: "net-card__head" }, netBadge(n), h("div", {}, "YouTube", h("small", {}, d.username || ""))),
+        h("dl", {},
+          cell("Inscritos", int(d.followers)),
+          cell("Vídeos no período", int(posts.length)),
+          cell("Visualizações", cur ? int(cur.views, true) : int(posts.reduce((a, p) => a + p.views, 0), true)),
+          cell("Horas assistidas", cur ? int(cur.minutes / 60) : "—")),
+        h("p", { class: "muted" }, "Ver análise completa do canal →"));
+    }
     const posts = d.posts || [];
     const reach = posts.reduce((a, p) => a + p.reach, 0);
     const inter = posts.reduce((a, p) => a + p.interactions, 0);
@@ -42,13 +78,10 @@ export function renderSocial(view, state) {
       h("p", { class: "muted" }, `${dec(posts.length / weeks, 1)} posts por semana · ${int(inter)} interações no período`));
   }));
 
-  const all = nets.flatMap((n) => (s[n].posts || []).map((p) => ({ network: n, ...p })));
+  const all = nets.flatMap((n) => (withYt[n].posts || []).map((p) => ({ network: n, ...p })));
   const posts = ui.network === "all" ? all : all.filter((p) => p.network === ui.network);
 
-  const netSwitch = nets.length > 1 ? h("div", { class: "seg", role: "radiogroup", "aria-label": "Rede social" },
-    [["all", "Todas as redes"], ...nets.map((n) => [n, NET_NAME[n]])].map(([v, label]) => h("button", {
-      role: "radio", "aria-checked": String(ui.network === v), onclick: () => { ui.network = v; ui.format = "all"; renderSocial(view, state); },
-    }, v !== "all" ? netBadge(v) : null, label))) : null;
+  const netSwitch = nets.length > 1 ? switcher(nets, () => renderSocial(view, state)) : null;
 
   if (!posts.length) {
     view.replaceChildren(...[netCards, netSwitch ? h("div", { class: "toolbar" }, netSwitch) : null, emptyState("Nenhum post no período", "Escolha um período maior no seletor acima.")].filter(Boolean));
@@ -82,7 +115,7 @@ export function renderSocial(view, state) {
         h("ol", { class: "top-posts" }, top.map((p, i) => h("li", {},
           h("span", { class: "top-posts__n" }, String(i + 1)), postThumb(p),
           h("div", {}, h("p", { class: "top-posts__title" }, p.caption || "(sem legenda)"),
-            h("p", { class: "muted" }, `${NET_NAME[p.network]} · ${dayLabel(p.date.slice(0, 10))} · ${int(p.reach)} alcançadas · ${int(p.interactions)} interações`)))))),
+            h("p", { class: "muted" }, `${NET_NAME[p.network]} · ${dayLabel(p.date.slice(0, 10))} · ${int(p.reach)} ${p.network === "youtube" ? "visualizações" : "alcançadas"} · ${int(p.interactions)} interações`)))))),
       card({ title: "O que funciona melhor", sub: "Alcance médio por formato" },
         h("ul", { class: "formats" }, fmtRows.map(([name, f]) => h("li", {},
           h("div", { class: "formats__row" }, h("strong", {}, name), h("span", { class: "muted" }, `${f.n} post${f.n > 1 ? "s" : ""} · ${pct(safeDiv(f.inter, f.reach), 1)} engajamento`)),
@@ -100,6 +133,13 @@ export function renderSocial(view, state) {
 
 const cell = (k, v) => h("div", {}, h("dt", {}, k), h("dd", {}, v));
 
+function switcher(nets, rerender) {
+  return h("div", { class: "seg", role: "radiogroup", "aria-label": "Rede social" },
+    [["all", "Todas as redes"], ...nets.map((n) => [n, NET_NAME[n]])].map(([v, label]) => h("button", {
+      role: "radio", "aria-checked": String(ui.network === v), onclick: () => { setSocialNetwork(v); rerender(); },
+    }, v !== "all" ? netBadge(v) : null, label)));
+}
+
 function postCard(p) {
   const metric = (ico, v, label) => h("span", { title: label }, icon(ico), h("b", {}, int(v, true)), h("span", { class: "sr-only" }, label));
   const thumb = postThumb(p);
@@ -109,10 +149,10 @@ function postCard(p) {
       h("p", { class: "post__date muted" }, `${NET_NAME[p.network]} · ${dayLabel(p.date.slice(0, 10))}`),
       h("p", { class: "post__caption" }, p.caption || "(sem legenda)"),
       h("div", { class: "post__stats" },
-        metric("eye", p.reach, "contas alcançadas"),
+        metric("eye", p.reach, p.network === "youtube" ? "visualizações" : "contas alcançadas"),
         metric("heart", p.likes, p.network === "facebook" ? "reações" : "curtidas"),
         h("span", { title: "comentários" }, "💬", h("b", {}, int(p.comments, true))),
-        p.network === "facebook"
+        p.network === "facebook" || p.network === "youtube"
           ? h("span", { title: "compartilhamentos" }, "↗", h("b", {}, int(p.shares, true)))
           : h("span", { title: "salvamentos" }, "🔖", h("b", {}, int(p.saves, true)))))];
   return p.permalink

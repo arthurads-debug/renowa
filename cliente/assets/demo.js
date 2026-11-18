@@ -329,6 +329,14 @@ export function demoYouTube(client, from, to, prevFrom, prevTo) {
   });
   return {
     connected: true, analytics: true, split: true,
+    recent: Array.from({ length: 16 }, (_, i) => {
+      const r = seeded(`ytr:${client.id}:${i}`)();
+      const short = i % 3 === 1;
+      const totalViews = Math.round((short ? 9000 : 3500) * (0.4 + r * 1.6) * (i < 3 ? 0.5 : 1));
+      return { id: `demor${i}`, title: (short ? "Short · " : "") + YT_TITLES[kit][i % YT_TITLES[kit].length], publishedAt: new Date(Date.now() - (i * 3 + 1) * 864e5).toISOString(), thumbnail: null, duration: short ? 38 : 180 + i * 40, short,
+        totalViews, totalLikes: Math.round(totalViews * (0.03 + r * 0.03)), totalComments: Math.round(totalViews * 0.004),
+        period: i < 10 ? { views: Math.round(totalViews * 0.8), minutes: 0, avgPercent: short ? 78 : 45 + r * 15, likes: 0, comments: 0, shares: 0, gained: Math.round(r * 30) } : null };
+    }),
     channel: { id: "UCdemo", name: client.name, handle: `@${kit}oficial`, thumbnail: null, banner: null, subscribers: { prefeitura: 28400, loja: 6100, ecommerce: 54200 }[kit], views: { prefeitura: 3120000, loja: 640000, ecommerce: 8900000 }[kit], videos: { prefeitura: 412, loja: 138, ecommerce: 520 }[kit], since: "2019-03-11T00:00:00Z" },
     current: cur, previous: prevFrom ? prev : null, daily, top,
     traffic: [["YT_SEARCH", 0.31], ["SUGGESTED", 0.27], ["BROWSE", 0.16], ["SHORTS", 0.12], ["EXT_URL", 0.07], ["SUBSCRIBER", 0.04], ["PLAYLIST", 0.03]].map(([source, f]) => ({ source, views: Math.round(totalViews * f), minutes: 0 })),

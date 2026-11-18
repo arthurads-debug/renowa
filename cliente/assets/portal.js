@@ -7,7 +7,7 @@ import { countUp, enter, tilt } from "./motion.js";
 import { renderOverview } from "./views/overview.js";
 import { renderAds } from "./views/ads.js";
 import { renderSocial } from "./views/social.js";
-import { renderYouTube } from "./views/youtube.js";
+import { setSocialNetwork } from "./views/social.js";
 import { renderOpportunities } from "./views/opportunities.js";
 import { renderCalendar } from "./views/calendar.js";
 import { renderHistory } from "./views/history.js";
@@ -47,8 +47,7 @@ export const state = {
 const ROUTES = {
   resumo: { label: "Resumo", icon: "home", period: true, render: renderOverview, title: (c) => c.name, kicker: "Visão geral" },
   anuncios: { label: "Anúncios", icon: "ads", period: true, render: renderAds, title: () => "Anúncios", kicker: "Tráfego pago · Google e Meta", show: (c) => c.platforms.google || c.platforms.meta },
-  social: { label: "Social media", icon: "social", period: true, render: renderSocial, title: () => "Social media", kicker: "Instagram e Facebook · conteúdo orgânico", show: (c) => c.has.instagram || c.has.facebook || c.has.calendar },
-  youtube: { label: "YouTube", icon: "youtube", period: true, render: renderYouTube, title: () => "YouTube", kicker: "Canal · vídeos, audiência e crescimento", show: (c) => c.has.youtube },
+  social: { label: "Social media", icon: "social", period: true, render: renderSocial, title: () => "Social media", kicker: "Instagram, Facebook e YouTube · conteúdo orgânico", show: (c) => c.has.instagram || c.has.facebook || c.has.youtube || c.has.calendar },
   oportunidades: { label: "Oportunidades", icon: "rocket", period: true, render: renderOpportunities, title: () => "Oportunidades", kicker: "Conteúdo orgânico que merece virar anúncio", show: (c) => c.has.instagram || c.has.facebook || c.has.youtube },
   calendario: { label: "Calendário", icon: "calendar", period: false, render: renderCalendar, title: () => "Calendário editorial", kicker: "O que vamos publicar", show: (c) => c.has.calendar },
   historico: { label: "Histórico", icon: "history", period: false, render: renderHistory, title: () => "Histórico", kicker: "Últimos 12 meses" },
@@ -65,7 +64,9 @@ function buildNav() {
 }
 
 function currentRoute() {
-  const id = location.hash.slice(1);
+  let id = location.hash.slice(1);
+  // o YouTube agora fica dentro de Social media (links antigos #youtube continuam funcionando)
+  if (id === "youtube") { setSocialNetwork("youtube"); id = "social"; history.replaceState(null, "", "#social"); }
   return visibleRoutes().some(([k]) => k === id) ? id : "resumo";
 }
 
@@ -192,7 +193,7 @@ function loadPeriod() {
     const { from, to, prevFrom } = state;
     const ytFrom = from;
     state.source.youtube?.(from, to, state.prevFrom, state.prevTo)
-      .then((y) => { if (ytFrom === state.from) { state.youtube = y; if (["youtube", "oportunidades", "resumo"].includes(state.route)) render(); } })
+      .then((y) => { if (ytFrom === state.from) { state.youtube = y; if (["social", "oportunidades", "resumo"].includes(state.route)) render(); } })
       .catch(() => { state.youtube = { connected: true, error: "Não foi possível consultar o YouTube agora." }; if (state.route === "youtube") render(); });
     const [m, s] = await Promise.all([
       state.source.metrics(prevFrom, to, from),

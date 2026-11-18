@@ -3,7 +3,7 @@ import { h, icon, int, dec, pct, safeDiv, fmtDay, fmtDayLong, parseISO } from ".
 import { card, kpiGrid, loadingState, emptyState } from "../components.js";
 import { renderChart, observe } from "../charts.js";
 
-const ui = { sort: "views", chart: "views" };
+const ui = { sort: "views", chart: "views", rsort: "recent", rfmt: "all" };
 const BLUE = "#1E12EA", ORANGE = "#FA4802";
 
 const TRAFFIC = {
@@ -145,6 +145,7 @@ export function renderYouTube(view, state) {
     value,
     card({ title: "Desempenho dia a dia", sub: "Passe o mouse sobre o gráfico para ver cada dia", tools: [seg] }, chartBox),
     card({ title: "Vídeos de maior impacto", sub: "No período selecionado · clique para assistir", tools: [sortSel] }, topBox),
+    recentSection(y),
     h("div", { class: "grid-2" },
       card({ title: "Como as pessoas encontram o canal", sub: "Origem das visualizações" },
         trafficRows.length ? h("ul", { class: "yt-bars" }, trafficRows.map((t) => bar(t.label, safeDiv(t.views, trafficTotal), `${int(t.views)} views`))) : h("p", { class: "muted" }, "Sem dados de origem no período.")),
@@ -168,6 +169,49 @@ export function renderYouTube(view, state) {
   requestAnimationFrame(() => view.querySelectorAll(".yt-bars span, .yt-age__bar span, .yt-ret i").forEach((el) => el.classList.add("is-in")));
 }
 
+/* ---------- Vídeos publicados (como a aba Social media, para o YouTube) ---------- */
+const ago = (iso) => {
+  const d = Math.floor((Date.now() - Date.parse(iso)) / 864e5);
+  return d <= 0 ? "hoje" : d === 1 ? "ontem" : d < 30 ? `há ${d} dias` : parseISO(iso.slice(0, 10)).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+};
+function recentSection(y) {
+  const vids = y.recent || [];
+  if (!vids.length) return null;
+  const hasShorts = vids.some((v) => v.short) && vids.some((v) => !v.short);
+  const grid = h("div", { class: "ytv-grid" });
+  const er = (v) => safeDiv(v.totalLikes + v.totalComments, v.totalViews);
+  const paint = () => {
+    let list = ui.rfmt === "all" ? vids : vids.filter((v) => (ui.rfmt === "short" ? v.short : !v.short));
+    const by = { recent: (a, b) => b.publishedAt.localeCompare(a.publishedAt), views: (a, b) => b.totalViews - a.totalViews, eng: (a, b) => er(b) - er(a), period: (a, b) => (b.period?.views || 0) - (a.period?.views || 0) };
+    list = [...list].sort(by[ui.rsort]);
+    grid.replaceChildren(...list.map((v) => {
+      const p = v.period;
+      const fresh = Date.now() - Date.parse(v.publishedAt) < 7 * 864e5;
+      return h("a", { class: "ytv", href: watch(v.id), target: "_blank", rel: "noopener", "aria-label": `Assistir: ${v.title}` },
+        h("div", { class: "ytv__media" }, thumb(v, "yt-thumb ytv__thumb"), fresh ? h("span", { class: "ytv__new" }, "Novo") : null),
+        h("div", { class: "ytv__body" },
+          h("p", { class: "ytv__date" }, `${v.short ? "Short" : "Vídeo"} · ${ago(v.publishedAt)}`),
+          h("p", { class: "ytv__title" }, v.title),
+          h("div", { class: "ytv__stats" },
+            h("span", { title: "visualizações desde a publicação" }, icon("eye"), h("b", {}, int(v.totalViews, true))),
+            h("span", { title: "curtidas" }, icon("heart"), h("b", {}, int(v.totalLikes, true))),
+            h("span", { title: "comentários" }, "💬", h("b", {}, int(v.totalComments, true))),
+            h("span", { class: "ytv__er", title: "engajamento (curtidas + comentários ÷ visualizações)" }, pct(er(v), 1))),
+          p && p.views ? h("p", { class: "ytv__period" }, h("b", {}, `${int(p.views)} views no período`), p.avgPercent ? ` · ${dec(p.avgPercent, 0)}% assistido` : "", p.gained ? ` · +${int(p.gained)} inscritos` : "") : null));
+    }));
+  };
+  paint();
+  const select = (label, value, opts, set) => h("label", { class: "select" }, h("span", { class: "sr-only" }, label),
+    h("select", { onchange: (e) => { set(e.target.value); paint(); } }, opts.map(([v, l]) => h("option", { value: v, selected: v === value }, l))));
+  const week = vids.filter((v) => Date.now() - Date.parse(v.publishedAt) < 30 * 864e5).length;
+  return card({
+    title: "Vídeos publicados",
+    sub: `Os ${vids.length} mais recentes do canal · ${week} nos últimos 30 dias · números desde a publicação`,
+    tools: [hasShorts ? select("Formato", ui.rfmt, [["all", "Vídeos e Shorts"], ["video", "Só vídeos"], ["short", "Só Shorts"]], (v) => (ui.rfmt = v)) : null,
+      select("Ordenar", ui.rsort, [["recent", "Mais recentes"], ["views", "Mais vistos"], ["eng", "Maior engajamento"], ...(vids.some((v) => v.period) ? [["period", "Mais vistos no período"]] : [])], (v) => (ui.rsort = v))].filter(Boolean),
+  }, grid);
+}
+
 const stat = (value, label, sub) => h("div", { class: "kpi yt-stat" }, h("p", { class: "kpi__label" }, label), h("p", { class: "kpi__value" }, value), sub ? h("small", {}, sub) : null);
 const dl = (k, v) => h("div", {}, h("dt", {}, k), h("dd", {}, v));
 const retention = (p) => h("div", { class: "yt-ret", title: `Em média, ${dec(p, 0)}% do vídeo é assistido` }, h("i", { style: { "--w": `${Math.min(100, p || 0)}%` } }), h("span", {}, `${dec(p || 0, 0)}% assistido`));
@@ -175,12 +219,7 @@ const bar = (label, share, right) => h("li", {}, h("div", { class: "yt-bars__row
 
 // Sem a permissão de estatísticas: vídeos recentes com os números públicos
 function partialView(y) {
-  const vids = y.recent || [];
   return h("div", { class: "stack" },
     h("p", { class: "source-alert" }, "Mostrando os números públicos dos vídeos. Para ver tempo assistido, inscritos ganhos e público, a agência precisa reconectar o YouTube com a permissão de estatísticas."),
-    card({ title: "Vídeos recentes", sub: "Totais desde a publicação" },
-      vids.length ? h("ol", { class: "yt-list" }, vids.slice(0, 12).map((v) => h("li", {},
-        h("a", { href: watch(v.id), target: "_blank", rel: "noopener" }, thumb(v),
-          h("div", { class: "yt-list__body" }, h("p", { class: "yt-list__title" }, v.title),
-            h("p", { class: "yt-list__meta" }, h("b", {}, `${int(v.totalViews)} views`), ` · ${int(v.totalLikes)} curtidas · ${int(v.totalComments)} comentários`)))))) : h("p", { class: "muted" }, "Nenhum vídeo encontrado.")));
+    recentSection(y) || card({ title: "Vídeos publicados" }, h("p", { class: "muted" }, "Nenhum vídeo encontrado.")));
 }

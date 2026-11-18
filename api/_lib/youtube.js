@@ -132,12 +132,21 @@ export async function fetchYouTube(channel, from, to, prevFrom, prevTo) {
   } catch (e) {
     // sem a permissão de estatísticas (ou API desativada): mostra os vídeos recentes com os números públicos
     out.analyticsError = String(e.message || e).slice(0, 300);
-    const uploads = c.contentDetails?.relatedPlaylists?.uploads;
-    if (uploads) {
-      const pl = await get(`${DATA}/playlistItems?${new URLSearchParams({ part: "contentDetails", playlistId: uploads, maxResults: "25" })}`, token).catch(() => ({ items: [] }));
-      const det = await videoDetails((pl.items || []).map((i) => i.contentDetails.videoId), token);
-      out.recent = Object.values(det).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+  }
+
+  // Vídeos publicados recentemente (os últimos 30), com os totais desde a publicação
+  // e, quando há permissão de estatísticas, o desempenho no período selecionado
+  const uploads = c.contentDetails?.relatedPlaylists?.uploads;
+  if (uploads) {
+    const pl = await get(`${DATA}/playlistItems?${new URLSearchParams({ part: "contentDetails", playlistId: uploads, maxResults: "30" })}`, token).catch(() => ({ items: [] }));
+    const ids = (pl.items || []).map((i) => i.contentDetails.videoId);
+    const det = await videoDetails(ids, token).catch(() => ({}));
+    let period = {};
+    if (out.analytics && ids.length) {
+      const rows = await report(token, c.id, from, to, { metrics: "views,estimatedMinutesWatched,averageViewPercentage,likes,comments,shares,subscribersGained", dimensions: "video", filters: `video==${ids.join(",")}`, maxResults: String(ids.length) }).catch(() => []);
+      period = Object.fromEntries(rows.map((r) => [r.video, { views: +r.views || 0, minutes: +r.estimatedMinutesWatched || 0, avgPercent: +r.averageViewPercentage || 0, likes: +r.likes || 0, comments: +r.comments || 0, shares: +r.shares || 0, gained: +r.subscribersGained || 0 }]));
     }
+    out.recent = ids.map((id) => det[id] && { ...det[id], period: period[id] || null }).filter(Boolean).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
   }
   return out;
 }

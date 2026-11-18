@@ -39,7 +39,7 @@ export const STATUS = {
 };
 export const statusChip = (s, short) => h("span", { class: `chip ${STATUS[s]?.cls || ""}` }, short ? STATUS[s]?.short || STATUS[s]?.label : STATUS[s]?.label || s);
 
-const FORMAT_ICON = { Reels: "▶", "Vídeo": "▶", Carrossel: "❏", Stories: "◔", Imagem: "▣", Post: "▣" };
+const FORMAT_ICON = { Short: "▶", Reels: "▶", "Vídeo": "▶", Carrossel: "❏", Stories: "◔", Imagem: "▣", Post: "▣" };
 
 // Miniatura: imagem real do post ou uma arte gerada (modo demo / sem imagem)
 export function postThumb(p) {
@@ -69,7 +69,7 @@ export const weekdayShort = (s) => parseISO(s).toLocaleDateString("pt-BR", { wee
 export const dayLabel = (s) => `${weekdayShort(s)} ${fmtDay(s)}`;
 
 // Ícone de rede (G, M, f, IG) — a cor identifica a plataforma, o texto garante leitura sem cor
-const NET_TXT = { google: "G", meta: "M", facebook: "f", instagram: "IG" };
+const NET_TXT = { google: "G", meta: "M", facebook: "f", instagram: "IG", youtube: "▶" };
 export const netBadge = (platform) => h("span", { class: `net net--${platform}`, "aria-hidden": "true" }, NET_TXT[platform] || "");
 
 // Faixa "Contas conectadas": deixa claro de onde vem cada número do relatório

@@ -15,7 +15,7 @@ export function funnelCard(stages) {
   const labels = h("ol", { class: "f3d__labels" }, steps.map((s, i) => h("li", { style: { "--c": colorOf(i, steps.length) }, class: i === steps.length - 1 ? "is-last" : "" },
     h("span", { class: "f3d__name" }, s.label),
     h("strong", {}, int(s.value)),
-    s.note ? h("small", {}, s.note) : i ? h("small", {}, `${pct(safeDiv(s.value, steps[i - 1].value), s.value / steps[i - 1].value < 0.01 ? 2 : 1)} de ${steps[i - 1].label.toLowerCase()}`) : h("small", {}, "topo do funil"))));
+    s.note ? h("small", {}, s.note) : i ? h("small", {}, `${pct(safeDiv(s.value, steps[0].value), s.value / steps[0].value < 0.01 ? 2 : 1)} das ${steps[0].label.toLowerCase()}`) : h("small", {}, "topo do funil · 100%"))));
   const box = h("section", { class: "card f3d" },
     h("header", { class: "card__head" }, h("div", {}, h("h2", { class: "card__title" }, "Do anúncio ao resultado"), h("p", { class: "card__sub" }, "Cada etapa mostra quantas pessoas seguiram para a próxima · gire com o mouse ou o dedo"))),
     h("div", { class: "f3d__body" }, stage, labels));

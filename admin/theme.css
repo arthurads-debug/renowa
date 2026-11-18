@@ -337,3 +337,6 @@ body { background: var(--bg); }
   .picker__more > span { flex: none; }
   .picker__more .btn { flex: none; }
 }
+.svc { display: grid; gap: 8px; margin-top: 6px; padding: 12px 14px; border-radius: 14px; background: #FFF6EF; border: 1px solid #FBD9C4; }
+.svc__t { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #B13A06; }
+.svc .toggle small { display: block; font-size: 12px; color: var(--ink-3); font-weight: 500; }

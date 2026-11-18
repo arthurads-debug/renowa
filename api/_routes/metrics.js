@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     const days = (Date.parse(to) - Date.parse(from)) / 864e5;
     if (!(days >= 0 && days <= MAX_DAYS)) return json(res, 400, { error: `Período deve ter entre 1 e ${MAX_DAYS} dias.` });
 
-    const accounts = await adsFor(client, session.by === "admin" ? "agency" : "client");
+    const accounts = await adsFor(client, "client");
     const metaCfg = { ...(client.metaAds || {}), ...(client.metaConfig || {}) };
     const script = await readScriptData(client.id);
     const jobs = accounts.map((a) => {

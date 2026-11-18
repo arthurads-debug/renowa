@@ -385,7 +385,7 @@ async function saveClient(c, patch) {
   const m = { ...base, ...patch };
   await backend.save({
     id: m.id, name: m.name, contactName: m.contactName, email: m.email,
-    profile: m.profile, resultLabel: m.resultLabel, note: m.note, active: m.active !== false,
+    profile: m.profile, resultLabel: m.resultLabel, note: m.note, active: m.active !== false, calendar: m.calendar !== false,
     city: m.profile === "awareness" ? m.city : undefined,
     ads: Array.isArray(m.ads) ? m.ads : legacy(m),
     metaAds: { resultActionTypes: m.metaConfig?.resultActionTypes || m.metaAds?.resultActionTypes || [] },
@@ -430,7 +430,10 @@ function renderEditor(keepScroll) {
         fld("E-mail de acesso *", inp("ed-email", f.email, { type: "email", autocomplete: "off", oninput: set("email") }), "O cliente entra no relatório com este e-mail."),
         fld(f.isNew ? "Senha de acesso *" : "Nova senha", inp("ed-pass", "", { type: "text", autocomplete: "new-password", oninput: set("password"), placeholder: f.isNew ? "Mínimo de 10 caracteres" : "Deixe em branco para manter a atual" }),
           state.demo ? "No modo demonstração, todos os acessos usam a senha demo123." : "Envie a senha ao cliente por um canal seguro.")),
-      h("label", { class: "toggle" }, h("input", { type: "checkbox", checked: f.active !== false, onchange: (e) => (f.active = e.target.checked) }), "Acesso ao relatório ativo")),
+      h("label", { class: "toggle" }, h("input", { type: "checkbox", checked: f.active !== false, onchange: (e) => (f.active = e.target.checked) }), "Acesso ao relatório ativo"),
+      h("div", { class: "svc" },
+        h("p", { class: "svc__t" }, "Serviços contratados"),
+        h("label", { class: "toggle" }, h("input", { type: "checkbox", checked: f.calendar !== false, onchange: (e) => (f.calendar = e.target.checked) }), "Calendário editorial e posts", h("small", {}, "Desligado: a aba Calendário some do relatório do cliente (ex.: cliente só de tráfego pago)")))),
 
     // 2. Objetivo
     h("section", { class: "ed__sec" },
@@ -489,7 +492,7 @@ async function save(btn, err) {
   const payload = {
     id: f.isNew ? undefined : f.id,
     name: f.name, contactName: f.contactName, email: f.email, password: f.password || undefined,
-    profile: f.profile, resultLabel: f.resultLabel, note: f.note, active: f.active !== false,
+    profile: f.profile, resultLabel: f.resultLabel, note: f.note, active: f.active !== false, calendar: f.calendar !== false,
     city: f.profile === "awareness" ? f.city : undefined,
     ads: adsOfForm(f), metaAds: { resultActionTypes: f.metaConfig?.resultActionTypes || f.metaAds?.resultActionTypes || [] }, facebook: f.facebook || undefined, instagram: f.instagram || undefined, youtube: f.youtube || undefined,
     sheets: f.sheets, salesFormUrl: f.profile === "leads" ? f.salesFormUrl : undefined,
@@ -573,7 +576,7 @@ const nav = initNav(() => {
     { group: "Ir para", icon: "portal", label: "Área do Cliente", hint: "nova aba", keywords: "portal login cliente", run: () => window.open("/cliente/", "_blank", "noopener") },
     { group: "Ações", icon: "plus", label: "Cadastrar novo cliente", keywords: "criar adicionar", run: () => { go("clientes")(); openEditor(null); } },
     { group: "Ações", icon: "plus", label: "Nova publicação no calendário", keywords: "post agendar conteudo", run: () => { go("calendario")(); setTimeout(() => calendar.open(null), 300); } },
-    ...state.clients.filter((c) => !c.pending).map((c) => ({ group: "Calendário", icon: "report", label: `Calendário de ${c.name}`, keywords: "posts conteudo agenda", searchOnly: true, run: () => { go("calendario")(); } })),
+    ...state.clients.filter((c) => !c.pending && c.calendar !== false).map((c) => ({ group: "Calendário", icon: "report", label: `Calendário de ${c.name}`, keywords: "posts conteudo agenda", searchOnly: true, run: () => { go("calendario")(); } })),
     { group: "Ações", icon: "link", label: "Copiar link do site", keywords: "compartilhar url", run: () => copy(location.origin + "/", "Link do site copiado.") },
     { group: "Ações", icon: "refresh", label: "Atualizar leads e clientes", keywords: "recarregar", run: async () => { await Promise.all([leads.refresh(), refreshList()]); toast("Atualizado."); } },
     ...STAGES.map((s) => ({ group: "Filtrar leads", icon: "filter", label: `Leads: ${s.name}`, hint: `${L.filter((l) => l.etapa === s.v).length}`, keywords: "etapa funil", searchOnly: true, run: () => { go("leads")(); leads.setStage(s.v); } })),

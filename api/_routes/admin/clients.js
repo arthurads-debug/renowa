@@ -25,6 +25,8 @@ function clean(input, existing) {
     currency: /^[A-Z]{3}$/.test(input.currency || "") ? input.currency : "BRL",
     note: str(input.note, 600),
     active: input.active !== false,
+    // serviços contratados: sem calendário editorial (só tráfego, por exemplo) a aba some para o cliente
+    calendar: input.calendar !== false,
     ...(existing?.pending && input.active === false ? { pending: true } : {}),
     ...(existing?.phone ? { phone: existing.phone } : {}),
     ...(existing?.createdAt ? { createdAt: existing.createdAt } : {}),

@@ -57,7 +57,7 @@ export function initCalendar({ state, api, toast }) {
   }
 
   async function load() {
-    const clients = state.clients.filter((c) => !c.pending);
+    const clients = state.clients.filter((c) => !c.pending && c.calendar !== false);
     if (!cs.client || !clients.some((c) => c.id === cs.client)) cs.client = clients[0]?.id || null;
     if (!cs.client) { cs.posts = []; render(); return; }
     cs.loading = true; render();
@@ -153,7 +153,7 @@ export function initCalendar({ state, api, toast }) {
   function render() {
     const box = $("#calendar-admin");
     if (!box) return;
-    const clients = state.clients.filter((c) => !c.pending);
+    const clients = state.clients.filter((c) => !c.pending && c.calendar !== false);
     if (!clients.length) { box.replaceChildren(h("div", { class: "empty-state" }, h("strong", {}, "Nenhum cliente ainda"), h("p", {}, "Cadastre um cliente para montar o calendário dele."))); return; }
 
     const shift = (n) => {

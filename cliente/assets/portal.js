@@ -8,6 +8,7 @@ import { renderOverview } from "./views/overview.js";
 import { renderAds } from "./views/ads.js";
 import { renderSocial } from "./views/social.js";
 import { setSocialNetwork } from "./views/social.js";
+import { renderYouTube } from "./views/youtube.js";
 import { renderOpportunities } from "./views/opportunities.js";
 import { renderCalendar } from "./views/calendar.js";
 import { renderHistory } from "./views/history.js";
@@ -268,7 +269,43 @@ function setLive(ok, message) {
   else $("#live-text").textContent = message || "Sem conexão";
 }
 $("#btn-refresh").addEventListener("click", () => refreshAll());
-$("#btn-print").addEventListener("click", () => window.print());
+$("#btn-print").addEventListener("click", printReport);
+
+/* ---------- Relatório para baixar (PDF): todas as seções do período num documento só ---------- */
+function printReport() {
+  const c = state.client;
+  if (!c || !state.metrics) { toast("Aguarde os números carregarem para baixar o relatório."); return; }
+  const have = (k) => visibleRoutes().some(([r]) => r === k);
+  const sections = [
+    ["resumo", "Resumo", ROUTES.resumo.render],
+    have("anuncios") ? ["anuncios", "Anúncios", ROUTES.anuncios.render] : null,
+    have("social") && (c.has.instagram || c.has.facebook) ? ["social", "Social media", ROUTES.social.render] : null,
+    c.has.youtube && state.youtube?.connected ? ["youtube", "YouTube", renderYouTube] : null,
+    have("oportunidades") ? ["oportunidades", "Oportunidades", ROUTES.oportunidades.render] : null,
+  ].filter(Boolean);
+  const box = $("#print-report") || document.body.appendChild(h("div", { id: "print-report" }));
+  const range = state.from === state.to ? fmtFull(state.from) : `${fmtFull(state.from)} a ${fmtFull(state.to)}`;
+  box.replaceChildren(
+    h("header", { class: "pr-head" },
+      h("img", { src: "/assets/brand/renowa-logo-light.svg", alt: "Renowa", class: "pr-head__logo" }),
+      h("div", { class: "pr-head__txt" }, h("p", {}, "Relatório de resultados"), h("h1", {}, c.name), h("p", {}, range)),
+      h("p", { class: "pr-head__date" }, `Gerado em ${new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}`)));
+  document.body.classList.add("printing");
+  const keep = { platform: state.platform };
+  state.platform = "all";
+  setSocialNetwork("all");
+  const helpers = { refreshContent: loadContent, toast, openDrawer, loadHistory, setPlatform };
+  for (const [key, title, fn] of sections) {
+    const body = h("div", { class: "pr-sec__body view" });
+    box.append(h("section", { class: `pr-sec pr-sec--${key}` }, h("h2", { class: "pr-sec__title" }, title), body));
+    try { fn(body, state, helpers); } catch (e) { console.error("[relatório]", key, e); body.replaceChildren(h("p", { class: "muted" }, "Não foi possível montar esta seção.")); }
+  }
+  state.platform = keep.platform;
+  const done = () => { document.body.classList.remove("printing"); box.replaceChildren(); window.removeEventListener("afterprint", done); };
+  window.addEventListener("afterprint", done);
+  // espera imagens e animações das barras assentarem antes de abrir a janela de impressão
+  setTimeout(() => { box.querySelectorAll(".mix__bar span, .mix__cmp i, .yt-bars span, .yt-age__bar span, .yt-ret i").forEach((el) => el.classList.add("is-in")); window.print(); }, 700);
+}
 
 /* =========================================================
    UI COMPARTILHADA
@@ -325,7 +362,6 @@ function showApp() {
   $("#view-login").hidden = true;
   $("#view-app").hidden = false;
   $("#demo-banner").hidden = !state.demo;
-  $("#agency-banner").hidden = c.viewer !== "agency";
   $("#client-name-side").textContent = c.name;
   $("#client-profile").textContent = PROFILE_TEXT[c.profile].name;
   $("#client-avatar").textContent = c.name.split(/\s+/).filter((w) => w.length > 2).slice(0, 2).map((w) => w[0]).join("").toUpperCase();

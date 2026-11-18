@@ -8,8 +8,9 @@ export default async function handler(req, res) {
     const session = getSession(req);
     const client = session && (await findById(session.sub));
     if (!client || (client.active === false && session.by !== "admin")) return json(res, 401, { error: "Sessão expirada. Entre novamente." });
+    // a agência vê o relatório exatamente como o cliente (contas ocultas ficam de fora também)
     const viewer = session.by === "admin" ? "agency" : "client";
-    return json(res, 200, { client: publicProfile(client, viewer, await adsFor(client, viewer)) });
+    return json(res, 200, { client: publicProfile(client, viewer, await adsFor(client, "client")) });
   } catch (err) {
     return fail(res, err);
   }

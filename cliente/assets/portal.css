@@ -928,3 +928,71 @@ a:hover .yt-thumb__play { transform: scale(1.15); background: #FF0033; }
   .agenda__item > .chip { grid-column: 2; justify-self: start; }
 }
 .wk__item > span { min-width: 0; overflow-wrap: anywhere; }
+
+/* =========================================================
+   RELATÓRIO PARA BAIXAR (PDF) — montado no clique, uma seção atrás da outra
+   Layout fixo de 1040px, reduzido para caber no A4 na impressão.
+   ========================================================= */
+#print-report { display: none; }
+body.printing #view-app, body.printing .toast, body.printing .demo-banner { display: none !important; }
+body.printing { background: #fff; }
+body.printing #print-report { display: block; width: 1040px; margin: 0 auto; padding: 0 0 24px; color: var(--ink); }
+#print-report * { animation: none !important; transition: none !important; }
+#print-report .m-in, #print-report .opp, #print-report .tab-in { opacity: 1 !important; transform: none !important; }
+.pr-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 24px; padding: 22px 26px; margin-bottom: 18px; border-radius: 20px; background: #050509; color: #EDF1F9; position: relative; overflow: hidden; }
+.pr-head::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: linear-gradient(90deg, #1E12EA 70%, #FA4802 70%); }
+.pr-head__logo { height: 28px; width: auto; }
+.pr-head__txt p:first-child { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #FF8A5C; font-weight: 800; }
+.pr-head__txt h1 { font-family: var(--font-display); font-stretch: 115%; font-weight: 800; font-size: 26px; letter-spacing: -.02em; line-height: 1.1; }
+.pr-head__txt p:last-child { font-size: 13px; color: rgba(237, 241, 249, .75); }
+.pr-head__date { font-size: 12px; color: rgba(237, 241, 249, .6); text-align: right; }
+.pr-sec { margin-top: 22px; }
+.pr-sec__title { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-stretch: 115%; font-weight: 800; font-size: 22px; letter-spacing: -.02em; padding-bottom: 8px; margin-bottom: 14px; border-bottom: 2px solid #ECEEF4; break-after: avoid; }
+.pr-sec__title::before { content: ""; width: 6px; height: 22px; border-radius: 4px; background: #FA4802; }
+.pr-sec__body { display: grid; gap: 14px; }
+/* o que é só para tela não vai para o papel */
+#print-report .seg, #print-report .toolbar, #print-report .card__tools, #print-report .select, #print-report .btn, #print-report .opp__act,
+#print-report .chan__more, #print-report .yt-orb, #print-report .yt-hero__scan, #print-report .f3d__stage, #print-report .fineprint,
+#print-report .card__sub + .card__tools, #print-report .accounts, #print-report .link, #print-report .ytv__new { display: none !important; }
+/* espaçamentos mais justos e grades que aproveitam a largura */
+#print-report .card, #print-report .hero-card, #print-report .note-card { padding: 16px 18px; box-shadow: none; }
+#print-report .hero-card { padding: 22px 26px; }
+#print-report .hero-card__text { font-size: 24px; max-width: 46ch; }
+#print-report .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+#print-report .kpi { padding: 12px 14px; box-shadow: none; }
+#print-report .chans { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+#print-report .chan { padding: 14px; gap: 10px; }
+#print-report .mix__top { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+#print-report .mix__grid { grid-template-columns: minmax(240px, .8fr) minmax(0, 1.4fr); }
+#print-report .f3d__body { grid-template-columns: minmax(0, 1fr); }
+#print-report .f3d__labels { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#print-report .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+#print-report .split-net { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#print-report .posts { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+#print-report .opps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+#print-report .ytv-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+#print-report .yt-hero { grid-template-columns: minmax(0, 1fr); }
+#print-report .yt-feat { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+#print-report .opp-hero { grid-template-columns: auto minmax(0, 1fr) auto; }
+/* nada cortado no meio entre páginas (só blocos pequenos, para não abrir buracos) */
+#print-report .kpi, #print-report .chan, #print-report .opp, #print-report .post, #print-report .ytv, #print-report .net-card,
+#print-report .hero-card, #print-report .mix__top, #print-report .yt-hero, #print-report .yt-feat, #print-report .yt-list li, #print-report .chart,
+#print-report .f3d__labels li, #print-report .top-posts li, #print-report .agenda__item, #print-report .opp-hero, #print-report .yt-value { break-inside: avoid; }
+#print-report .card:not(:has(.posts, .ytv-grid, .opps, .yt-list, .yt-top)) { break-inside: avoid; }
+@media print {
+  @page { size: A4; margin: 10mm; }
+  body.printing #print-report { zoom: .68; width: 1040px; }
+  html, body { background: #fff !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+/* relatório: sem repetição e listas na medida do papel */
+#print-report .pr-sec--resumo .ov-ads { display: none !important; }
+#print-report .posts > :nth-child(n+11) { display: none; }
+#print-report .ytv-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+#print-report .ytv-grid > :nth-child(n+9) { display: none; }
+#print-report .ytv, #print-report .post { min-width: 0; }
+#print-report .ytv__stats { flex-wrap: wrap; gap: 6px 10px; }
+#print-report .yt-list > li:nth-child(n+7) { display: none; }
+#print-report .opps > :nth-child(n+7) { display: none; }
+.ytv { min-width: 0; }
+.ytv__stats { flex-wrap: wrap; row-gap: 4px; }

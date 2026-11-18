@@ -1040,3 +1040,16 @@ body.printing #print-report { width: 718px; max-width: none; padding-left: 0; pa
 
 /* relatório: vídeos de maior impacto = os 4 principais (o destaque + 3) */
 #print-report .yt-list > li:nth-child(n+4) { display: none !important; }
+/* relatório: tabelas sempre dentro da largura da folha (nada cortado na lateral) */
+#print-report .table-wrap, #print-report .tbl, #print-report [class*="table"] { overflow: visible !important; }
+#print-report table { width: 100% !important; table-layout: fixed; font-size: 11px; }
+#print-report th, #print-report td { white-space: normal !important; overflow-wrap: anywhere; padding: 6px 4px !important; }
+#print-report th { font-size: 10px; }
+#print-report tr { break-inside: avoid; page-break-inside: avoid; }
+/* relatório: tabela de campanhas com coluna do nome mais larga e sem sobreposição */
+#print-report .table .camp { min-width: 0 !important; }
+#print-report table th:first-child, #print-report table td:first-child { width: 30%; }
+#print-report td *, #print-report th * { white-space: normal !important; }
+/* quadros Google Ads / Meta Ads: duas colunas para os valores não quebrarem no meio */
+#print-report .pf dl { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+#print-report .pf dd, #print-report .kpi__value, #print-report .chan dd, #print-report .net-card dd { white-space: nowrap; }

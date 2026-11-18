@@ -304,10 +304,11 @@ function lockBlocks(root) {
   const lock = (el) => {
     const d = getComputedStyle(el).display;
     if (!INLINE[d]) return;
-    el.style.display = INLINE[d];
-    el.style.width = "100%";
-    el.style.verticalAlign = "top";
-    el.style.boxSizing = "border-box";
+    // "important" para valer acima de qualquer regra de estilo do relatório
+    el.style.setProperty("display", INLINE[d], "important");
+    el.style.setProperty("width", "100%", "important");
+    el.style.setProperty("vertical-align", "top", "important");
+    el.style.setProperty("box-sizing", "border-box", "important");
   };
   const walk = (parent) => {
     for (const el of [...parent.children]) {
@@ -320,7 +321,7 @@ function lockBlocks(root) {
   root.querySelectorAll(".pr-sec").forEach((sec) => {
     // o título da seção vai junto com o primeiro bloco (nunca sozinho no pé da página)
     const title = sec.querySelector(".pr-sec__title"), body = sec.querySelector(".pr-sec__body");
-    const first = body?.firstElementChild;
+    const first = body && [...body.children].find((c) => getComputedStyle(c).display !== "none");
     if (title && first && first.getBoundingClientRect().height + title.getBoundingClientRect().height <= PAGE_PX) {
       const pair = h("div", { class: "pr-pair" });
       sec.insertBefore(pair, title);

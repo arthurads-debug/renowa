@@ -127,7 +127,7 @@ export function renderSocial(view, state) {
         h("p", { class: "fineprint" }, `${int(savesShares)} salvamentos e compartilhamentos no período — sinal de conteúdo que as pessoas querem guardar ou mostrar a alguém.`))),
     card({
       title: ui.network === "all" ? "Posts mais recentes" : `Posts mais recentes no ${NET_NAME[ui.network]}`,
-      sub: `Os ${matchMedia("(max-width: 760px)").matches ? 12 : 20} mais recentes do período`,
+      sub: "Os mais recentes do período",
       tools: [select("Formato", ui.format, [["all", "Todos os formatos"], ...Object.keys(formats).map((f) => [f, f])], (v) => (ui.format = v)),
         select("Ordenar", ui.sort, [["recent", "Mais recentes"], ["reach", "Maior alcance"], ["eng", "Maior engajamento"]], (v) => (ui.sort = v))],
     }, grid),

@@ -10,6 +10,7 @@ import metrics from "./_routes/metrics.js";
 import social from "./_routes/social.js";
 import signup from "./_routes/signup.js";
 import posts from "./_routes/posts.js";
+import connect from "./_routes/connect.js";
 import { metaOAuth, googleOAuth } from "./_routes/oauth.js";
 import adminIntegrations from "./_routes/admin/integrations.js";
 import adminPosts from "./_routes/admin/posts.js";
@@ -21,7 +22,7 @@ import adminLogin from "./_routes/admin/login.js";
 import adminMe from "./_routes/admin/me.js";
 
 const ROUTES = {
-  content, lead, login, logout, me, metrics, social, signup, posts,
+  content, lead, login, logout, me, metrics, social, signup, posts, connect,
   "oauth/meta": metaOAuth,
   "oauth/google": googleOAuth,
   "admin/integrations": adminIntegrations,

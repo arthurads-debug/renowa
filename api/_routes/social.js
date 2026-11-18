@@ -28,10 +28,10 @@ export default async function handler(req, res) {
 
     const [instagram, facebook] = await Promise.all([
       one("Instagram", !!client.instagram?.userId, () => cached(`ig:${client.id}:${client.instagram.userId}:${from}:${to}`, async () => {
-        const d = await fetchInstagram(client.instagram, from, to);
+        const d = await fetchInstagram(client.instagram, from, to, client.id);
         return { ...d, posts: d.posts.map((p) => ({ ...p, network: "instagram" })) };
       }, TTL)),
-      one("Facebook", !!client.facebook?.pageId, () => cached(`fb:${client.id}:${client.facebook.pageId}:${from}:${to}`, () => fetchFacebook(client.facebook, from, to), TTL)),
+      one("Facebook", !!client.facebook?.pageId, () => cached(`fb:${client.id}:${client.facebook.pageId}:${from}:${to}`, () => fetchFacebook(client.facebook, from, to, client.id), TTL)),
     ]);
     return json(res, 200, { instagram, facebook });
   } catch (err) {

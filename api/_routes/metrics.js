@@ -27,10 +27,10 @@ export default async function handler(req, res) {
 
     const jobs = {};
     if (client.googleAds?.customerId) {
-      jobs.google = cached(`g:${client.googleAds.customerId}:${from}:${to}`, () => fetchGoogleAds(client.googleAds, from, to));
+      jobs.google = cached(`g:${client.id}:${client.googleAds.customerId}:${from}:${to}`, () => fetchGoogleAds(client.googleAds, from, to, client.id));
     }
     if (client.metaAds?.adAccountId) {
-      jobs.meta = cached(`m:${client.metaAds.adAccountId}:${JSON.stringify(client.metaAds.resultActionTypes || [])}:${from}:${to}`, () => fetchMetaAds(client.metaAds, from, to));
+      jobs.meta = cached(`m:${client.id}:${client.metaAds.adAccountId}:${JSON.stringify(client.metaAds.resultActionTypes || [])}:${from}:${to}`, () => fetchMetaAds(client.metaAds, from, to, client.id));
     }
 
     const names = Object.keys(jobs);
@@ -55,8 +55,8 @@ export default async function handler(req, res) {
       const curFrom = ISO.test(split || "") && split >= from && split <= to ? split : from;
       const prevTo = new Date(Date.parse(curFrom) - 864e5).toISOString().slice(0, 10);
       const [cur, prev] = await Promise.allSettled([
-        cached(`ms:${client.metaAds.adAccountId}:${curFrom}:${to}`, () => fetchMetaSummary(client.metaAds, curFrom, to)),
-        curFrom > from ? cached(`ms:${client.metaAds.adAccountId}:${from}:${prevTo}`, () => fetchMetaSummary(client.metaAds, from, prevTo)) : Promise.resolve(null),
+        cached(`ms:${client.metaAds.adAccountId}:${curFrom}:${to}`, () => fetchMetaSummary(client.metaAds, curFrom, to, client.id)),
+        curFrom > from ? cached(`ms:${client.metaAds.adAccountId}:${from}:${prevTo}`, () => fetchMetaSummary(client.metaAds, from, prevTo, client.id)) : Promise.resolve(null),
       ]);
       summary = {
         current: cur.status === "fulfilled" ? cur.value : null,

@@ -10,28 +10,28 @@ const FORMAT = (m) => {
   return "Imagem";
 };
 
-async function insights(id) {
+async function insights(id, clientId) {
   // As métricas aceitas mudam por formato; tenta o conjunto completo e cai para o básico.
   for (const metric of ["reach,saved,shares,views,total_interactions", "reach,saved,total_interactions", "reach"]) {
     try {
-      const rows = await graphGet(`${id}/insights`, new URLSearchParams({ metric }));
+      const rows = await graphGet(`${id}/insights`, new URLSearchParams({ metric }), undefined, clientId);
       return Object.fromEntries(rows.map((r) => [r.name, Number(r.values?.[0]?.value ?? r.total_value?.value ?? 0)]));
     } catch { /* tenta o próximo conjunto */ }
   }
   return {};
 }
 
-export async function fetchInstagram(account, from, to) {
-  const profile = await graphGet(account.userId, new URLSearchParams({ fields: "username,followers_count,media_count" }));
+export async function fetchInstagram(account, from, to, clientId) {
+  const profile = await graphGet(account.userId, new URLSearchParams({ fields: "username,followers_count,media_count" }), undefined, clientId);
   const since = Math.floor(Date.parse(`${from}T00:00:00Z`) / 1000);
   const until = Math.floor(Date.parse(`${to}T23:59:59Z`) / 1000);
   const media = await graphGet(`${account.userId}/media`, new URLSearchParams({
     fields: "id,caption,media_type,media_product_type,permalink,thumbnail_url,media_url,timestamp,like_count,comments_count",
     since: String(since), until: String(until), limit: "50",
-  }));
+  }), undefined, clientId);
 
   const list = media.slice(0, 40);
-  const stats = await Promise.allSettled(list.map((m) => insights(m.id)));
+  const stats = await Promise.allSettled(list.map((m) => insights(m.id, clientId)));
   const posts = list.map((m, i) => {
     const s = stats[i].status === "fulfilled" ? stats[i].value : {};
     const likes = Number(m.like_count || 0), comments = Number(m.comments_count || 0);

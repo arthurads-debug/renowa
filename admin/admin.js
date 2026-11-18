@@ -22,7 +22,7 @@ const RESULT_TYPES = [
   { v: "complete_registration", label: "Cadastros no site" },
 ];
 
-const state = { demo: false, email: null, setup: null, clients: [], accounts: null, search: "" };
+const state = { demo: false, email: null, setup: null, clients: [], accounts: null, accountsFor: null, cx: null, cxMsg: null, search: "" };
 
 /* =========================================================
    BACKEND (API real ou demonstração)
@@ -82,9 +82,29 @@ const backend = {
     if (state.demo) return demoRecords().map((c) => ({ ...c, hasPassword: true, source: "painel" }));
     return (await api("/api/admin/clients")).clients;
   },
-  async accounts(fresh) {
+  async accounts(fresh, clientId) {
     if (state.demo) { await new Promise((r) => setTimeout(r, 300)); return MOCK; }
-    return api(`/api/admin/accounts${fresh ? "?fresh=1" : ""}`);
+    const q = new URLSearchParams();
+    if (fresh) q.set("fresh", "1");
+    if (clientId) q.set("cliente", clientId);
+    return api(`/api/admin/accounts?${q}`);
+  },
+  async connections(clientId) {
+    if (state.demo) {
+      await new Promise((r) => setTimeout(r, 300));
+      return { ready: { google: true, meta: true },
+        google: { own: true, since: new Date().toISOString(), test: { ok: true, text: "Últimos 30 dias: R$ 4.820,00 investidos · 182.400 impressões · 6.310 cliques" } },
+        meta: { own: false } };
+    }
+    return api(`/api/admin/integrations?cliente=${encodeURIComponent(clientId)}`);
+  },
+  async invite(clientId) {
+    if (state.demo) return { url: `${location.origin}/conectar/?t=demo` };
+    return api("/api/admin/integrations", { method: "POST", body: JSON.stringify({ action: "convite", cliente: clientId }) });
+  },
+  async disconnectClient(clientId, provider) {
+    if (state.demo) return;
+    return api(`/api/admin/integrations?cliente=${encodeURIComponent(clientId)}&provider=${provider}`, { method: "DELETE" });
   },
   async save(payload) {
     if (!state.demo) return (await api("/api/admin/clients", { method: "POST", body: JSON.stringify(payload) })).client;
@@ -151,6 +171,13 @@ async function showApp() {
   renderSetup();
   showTab(currentTab());
   await Promise.all([refreshList(), leads.refresh()]);
+  const q = new URLSearchParams(location.search);
+  if (q.get("cliente") && q.get("conexao")) {
+    const c = state.clients.find((x) => x.id === q.get("cliente"));
+    state.cxMsg = { provider: q.get("conexao"), err: q.get("erro") || "", ok: q.get("ok") ? `Conectado! ${q.get("ok")}` : "" };
+    history.replaceState(null, "", `${location.pathname}#clientes`);
+    if (c) openEditor(c, {}, { focusConnect: true });
+  }
 }
 
 /* ---------- Abas: Leads (CRM) e Clientes ---------- */
@@ -186,10 +213,10 @@ function renderSetup() {
     h("strong", {}, "Falta pouco para o painel ficar completo"),
     h("ul", {},
       item(s.store, "Banco de dados para salvar clientes: na Vercel, <b>Storage → Upstash for Redis</b> (cria <code>KV_REST_API_URL</code> e <code>KV_REST_API_TOKEN</code>)"),
-      item(s.google, "Google Ads: <code>GOOGLE_ADS_DEVELOPER_TOKEN</code>, credenciais OAuth e <code>GOOGLE_ADS_LOGIN_CUSTOMER_ID</code> (MCC)"),
-      item(s.meta, "Meta: <code>META_ACCESS_TOKEN</code> do Usuário do Sistema do Business Manager"),
+      item(s.google, "Conexão com o Google ativada (uma vez só): veja em <a href=\"#integracoes\">Configuração da agência</a>"),
+      item(s.meta, "Conexão com o Facebook ativada (uma vez só): veja em <a href=\"#integracoes\">Configuração da agência</a>"),
       item(s.whatsapp, "WhatsApp da agência: <code>AGENCY_WHATSAPP</code> (aprovação de posts e botão de contato)")),
-    h("p", { class: "fineprint" }, "Passo a passo completo em INTEGRACOES.md.")));
+    h("p", { class: "fineprint" }, "Depois disso, cada cliente é conectado no próprio cadastro, com um clique.")));
 }
 
 /* =========================================================
@@ -252,7 +279,7 @@ $("#btn-new").addEventListener("click", () => openEditor(null));
 let form = null;
 let lastFocus = null;
 
-function openEditor(client, prefill = {}) {
+function openEditor(client, prefill = {}, opts = {}) {
   lastFocus = document.activeElement;
   const c = client ? structuredClone(client) : { profile: "leads", active: true, resultLabel: "Conversas no WhatsApp", ...prefill };
   if (state.demo && c.sheets) for (const k of Object.keys(c.sheets)) if (c.sheets[k] === "demo") c.sheets[k] = "";
@@ -262,14 +289,26 @@ function openEditor(client, prefill = {}) {
   d.hidden = false;
   document.body.classList.add("no-scroll");
   requestAnimationFrame(() => d.classList.add("is-open"));
+  state.cx = null;
   renderEditor();
-  $("#ed-name")?.focus();
-  if (!state.accounts) loadAccounts(false);
+  if (opts.focusConnect) $("#cx")?.scrollIntoView({ block: "start" }); else $("#ed-name")?.focus();
+  if (client) loadCx(client.id);
+  if (!state.accounts || state.accountsFor !== (client?.id || null)) loadAccounts(false);
+}
+
+// Conexões do cliente (Google e Facebook próprios dele) + teste dos números
+async function loadCx(id) {
+  state.cx = { loading: true, id };
+  if (form?.id === id) renderEditor(true);
+  try { state.cx = { id, data: await backend.connections(id) }; }
+  catch (e) { state.cx = { id, error: e.message }; }
+  if (form?.id === id) renderEditor(true);
 }
 
 function closeEditor() {
   const d = $("#drawer");
   if (d.hidden) return;
+  state.cxMsg = null;
   d.classList.remove("is-open");
   document.body.classList.remove("no-scroll");
   setTimeout(() => (d.hidden = true), 250);
@@ -279,9 +318,11 @@ $("#drawer").addEventListener("click", (e) => e.target.closest("[data-close]") &
 document.addEventListener("keydown", (e) => e.key === "Escape" && closeEditor());
 
 async function loadAccounts(fresh) {
+  const id = form && !form.isNew ? form.id : null;
   state.accounts = { loading: true };
+  state.accountsFor = id;
   if (form) renderEditor(true);
-  try { state.accounts = await backend.accounts(fresh); }
+  try { state.accounts = await backend.accounts(fresh, id); }
   catch (e) { state.accounts = { google: { items: [], error: e.message }, meta: { items: [], error: e.message }, pages: { items: [], error: e.message }, instagram: { items: [], error: e.message } }; }
   if (form) renderEditor(true);
 }
@@ -310,7 +351,7 @@ function accountRow({ platform, title, desc, list, value, label, onPick, placeho
     if (sel.value === "__manual") { manual.hidden = false; manual.querySelector("input").focus(); return; }
     manual.hidden = true;
     const it = items.find((i) => i.id === sel.value);
-    onPick(sel.value ? { id: sel.value, name: it?.name || label || "" } : null);
+    onPick(sel.value ? { ...(it || {}), id: sel.value, name: it?.name || label || "" } : null);
   });
 
   const status = list?.error ? h("p", { class: "status is-err" }, list.error)
@@ -318,6 +359,61 @@ function accountRow({ platform, title, desc, list, value, label, onPick, placeho
     : h("p", { class: "status" }, desc);
   return h("div", { class: "acc-row" }, netBadge(platform), h("div", { class: "acc-row__body fld" },
     h("div", { class: "acc-row__top" }, h("strong", {}, title)), sel, manual, status));
+}
+
+const dateBR = (s) => (s ? new Date(s).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "");
+
+async function sendInvite(f, btn) {
+  btn.disabled = true;
+  try {
+    const { url } = await backend.invite(f.id);
+    const msg = `Olá! Para acompanhar os resultados dos anúncios no painel da ${BRAND}, conecte o Google Ads e o Facebook da ${f.name} por este link (leva 1 minuto, não precisa de senha nova):\n${url}`;
+    try { await navigator.clipboard.writeText(msg); toast("Mensagem com o link copiada. Cole no WhatsApp do cliente."); } catch { prompt("Copie a mensagem:", msg); }
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+  } catch (e) { toast(e.message); }
+  btn.disabled = false;
+}
+
+function cxCard(f, provider) {
+  const cx = state.cx;
+  const d = cx?.data?.[provider] || {};
+  const ready = cx?.data?.ready?.[provider];
+  const title = provider === "google" ? "Google Ads" : "Facebook e Instagram";
+  const msg = state.cxMsg?.provider === provider ? state.cxMsg : null;
+  let status;
+  if (cx?.loading || !cx) status = h("p", { class: "cx__st" }, "Verificando…");
+  else if (cx.error) status = h("p", { class: "cx__st is-err" }, cx.error);
+  else if (!ready) status = h("p", { class: "cx__st is-warn" }, "Falta ativar a conexão da agência (uma vez só). ", h("a", { href: "#integracoes" }, "Ver como"));
+  else if (d.own) status = h("p", { class: "cx__st is-ok" }, `✓ Conectado${d.by === "cliente" ? " pelo cliente" : ""}${d.since ? ` em ${dateBR(d.since)}` : ""}${d.name ? ` · ${d.name}` : ""}`);
+  else status = h("p", { class: "cx__st" }, provider === "meta" && d.account ? "Usando o Facebook da agência" : "Não conectado");
+  const test = d.test ? h("p", { class: `cx__test ${d.test.ok ? "is-ok" : "is-err"}` }, d.test.ok ? h("strong", {}, "Funcionando. ") : h("strong", {}, "Sem números: "), d.test.text)
+    : d.own && !d.account ? h("p", { class: "cx__test is-warn" }, "Escolha a conta de anúncios em “Contas escolhidas”, logo abaixo, e salve.") : null;
+  const href = state.demo ? "#clientes" : `/api/oauth/${provider}?cliente=${encodeURIComponent(f.id)}`;
+  return h("article", { class: `cx__card${d.own ? " is-on" : ""}${d.test && !d.test.ok ? " is-bad" : ""}` },
+    h("header", {}, netBadge(provider), h("strong", {}, title)),
+    status,
+    msg ? h("p", { class: `cx__test ${msg.err ? "is-err" : "is-ok"}`, role: "status" }, msg.err || msg.ok) : null,
+    test,
+    h("div", { class: "cx__btns" },
+      h("a", { class: `btn ${d.own ? "btn--ghost" : "btn--primary"} btn--sm`, href, "aria-disabled": ready === false ? "true" : null,
+        onclick: (e) => { if (state.demo) { e.preventDefault(); toast("Na demonstração o login não abre."); } } }, d.own ? "Conectar de novo" : `Conectar ${provider === "google" ? "Google" : "Facebook"}`),
+      d.own ? h("button", { type: "button", class: "link", onclick: async () => {
+        if (!confirm(`Desconectar o ${title} de ${f.name}?`)) return;
+        try { await backend.disconnectClient(f.id, provider); toast("Desconectado."); loadCx(f.id); } catch (e) { toast(e.message); }
+      } }, "Desconectar") : null));
+}
+
+function connectBox(f) {
+  if (f.isNew) return h("p", { class: "cx__new" }, "Cadastre o cliente primeiro. Logo depois aparecem os botões para conectar o Google e o Facebook dele.");
+  return h("div", { class: "cx" },
+    h("ol", { class: "cx__how" },
+      h("li", {}, h("span", {}, h("b", {}, "Clique em Conectar"), " e entre com o e-mail que administra os anúncios deste cliente.")),
+      h("li", {}, h("span", {}, h("b", {}, "Clique em Continuar"), " na tela do Google ou do Facebook.")),
+      h("li", {}, h("span", {}, h("b", {}, "Pronto."), " A conta é escolhida sozinha e o teste abaixo mostra os números dos últimos 30 dias."))),
+    h("div", { class: "cx__grid" }, cxCard(f, "google"), cxCard(f, "meta")),
+    h("div", { class: "cx__invite" },
+      h("p", {}, h("b", {}, "Não tem o login do cliente?"), " Mande um link: ele mesmo clica e conecta, sem senha e sem precisar de você."),
+      h("button", { type: "button", class: "btn btn--ghost btn--sm", onclick: (e) => sendInvite(f, e.currentTarget) }, "Enviar link pelo WhatsApp")));
 }
 
 function renderEditor(keepScroll) {
@@ -379,11 +475,14 @@ function renderEditor(keepScroll) {
 
     // 3. Contas
     h("section", { class: "ed__sec" },
-      h("h3", {}, h("span", { class: "num" }, "3"), "Contas que alimentam o relatório",
-        h("button", { type: "button", class: "link", style: { marginLeft: "auto", fontSize: "13px" }, onclick: () => loadAccounts(true) }, "Atualizar listas")),
-      h("p", { class: "ed__hint" }, "As listas mostram as contas a que a agência tem acesso (MCC do Google e Business Manager da Meta). O cliente só vê os dados das contas escolhidas aqui."),
+      h("h3", { id: "cx" }, h("span", { class: "num" }, "3"), "Conectar Google e Facebook"),
+      connectBox(f),
+      h("details", { class: "cx__more", open: !!(f.googleAds?.customerId || f.metaAds?.adAccountId || f.facebook?.pageId) || undefined },
+        h("summary", {}, "Contas escolhidas para o relatório",
+          h("button", { type: "button", class: "link", style: { marginLeft: "auto", fontSize: "13px" }, onclick: (e) => { e.preventDefault(); loadAccounts(true); } }, "Atualizar listas")),
+        h("p", { class: "ed__hint", style: { marginTop: "6px" } }, "Quando o login tem só uma conta, ela já vem escolhida. Se tiver várias, escolha aqui qual é deste cliente e salve."),
       accountRow({ platform: "google", title: "Google Ads", desc: "Conta de anúncios do cliente sob a sua MCC.", list: gList, value: f.googleAds?.customerId, label: f.googleAds?.name, placeholder: "123-456-7890",
-        onPick: (v) => { f.googleAds = v ? { customerId: v.id, name: v.name } : null; renderEditor(true); } }),
+        onPick: (v) => { f.googleAds = v ? { customerId: v.id, name: v.name, loginCustomerId: v.loginCustomerId || "" } : null; renderEditor(true); } }),
       accountRow({ platform: "meta", title: "Meta Ads (Facebook e Instagram Ads)", desc: "Conta de anúncios do cliente no Business Manager.", list: mList, value: f.metaAds?.adAccountId, label: f.metaAds?.name, placeholder: "act_1234567890",
         onPick: (v) => { f.metaAds = v ? { ...(f.metaAds || {}), adAccountId: v.id, name: v.name } : null; renderEditor(true); } }),
       accountRow({ platform: "facebook", title: "Página do Facebook", desc: "Posts, alcance e interações orgânicas da página.", list: pList, value: f.facebook?.pageId, label: f.facebook?.name, placeholder: "ID da página",
@@ -394,7 +493,7 @@ function renderEditor(keepScroll) {
           renderEditor(true);
         } }),
       accountRow({ platform: "instagram", title: "Instagram", desc: "Conta comercial do Instagram ligada a uma página.", list: iList, value: f.instagram?.userId, label: f.instagram?.username ? `@${f.instagram.username}` : "", placeholder: "ID da conta do Instagram",
-        onPick: (v) => { f.instagram = v ? { userId: v.id, username: v.name } : null; renderEditor(true); } })),
+        onPick: (v) => { f.instagram = v ? { userId: v.id, username: v.name } : null; renderEditor(true); } }))),
 
     // 4. Conteúdo
     h("section", { class: "ed__sec" },
@@ -438,10 +537,11 @@ async function save(btn, err) {
   const label = btn.textContent;
   btn.textContent = "Salvando…";
   try {
-    await backend.save(payload);
+    const saved = await backend.save(payload);
     closeEditor();
-    toast(f.isNew ? `${f.name} cadastrado. Envie o e-mail e a senha ao cliente.` : "Alterações salvas. O relatório do cliente já usa as novas contas.");
+    toast(f.isNew ? `${f.name} cadastrado. Agora conecte o Google e o Facebook dele.` : "Alterações salvas. O relatório do cliente já usa as novas contas.");
     await refreshList();
+    if (f.isNew && saved) { const c = state.clients.find((x) => x.id === saved.id); if (c) setTimeout(() => openEditor(c, {}, { focusConnect: true }), 300); }
   } catch (e) {
     if (e.message !== "401") err.textContent = e.message;
   } finally {
@@ -505,7 +605,7 @@ const nav = initNav(() => {
     { group: "Ir para", icon: "leads", label: "Leads · aplicações do site", hint: "CRM", keywords: "crm funil propostas", run: go("leads") },
     { group: "Ir para", icon: "clients", label: "Clientes · relatórios", hint: pending.length ? `${pending.length} aguardando liberação` : "", keywords: "relatorios contas", run: go("clientes") },
     { group: "Ir para", icon: "report", label: "Calendário editorial", hint: "montar posts dos clientes", keywords: "conteudo posts agenda publicacoes", run: go("calendario") },
-    { group: "Ir para", icon: "link", label: "Integrações · Facebook e Google", hint: "conectar contas", keywords: "meta google ads instagram conectar login token", run: go("integracoes") },
+    { group: "Ir para", icon: "link", label: "Configuração da agência · Google e Facebook", hint: "feito uma vez", keywords: "meta google ads instagram conectar login token", run: go("integracoes") },
     { group: "Ir para", icon: "site", label: "Abrir o site (proposta)", hint: "nova aba", keywords: "home pagina inicial", run: () => window.open("/", "_blank", "noopener") },
     { group: "Ir para", icon: "portal", label: "Área do Cliente", hint: "nova aba", keywords: "portal login cliente", run: () => window.open("/cliente/", "_blank", "noopener") },
     { group: "Ações", icon: "plus", label: "Cadastrar novo cliente", keywords: "criar adicionar", run: () => { go("clientes")(); openEditor(null); } },

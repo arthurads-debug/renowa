@@ -20,6 +20,11 @@ async function write(key, value) {
 }
 
 export const getConn = (provider) => read(KEYS[provider]);
+// Conexão própria de cada cliente (o login do Google/Facebook que administra as contas dele)
+const ckey = (provider, clientId) => `renowa:conn:${provider}:${clientId}`;
+export const getClientConn = (provider, clientId) => (clientId ? read(ckey(provider, clientId)) : Promise.resolve(null));
+export const setClientConn = (provider, clientId, value) => write(ckey(provider, clientId), value);
+export const delClientConn = (provider, clientId) => write(ckey(provider, clientId), null);
 export const setConn = (provider, value) => write(KEYS[provider], value);
 export const delConn = (provider) => write(KEYS[provider], null);
 
@@ -56,7 +61,9 @@ export async function saveApps(provider, fields) {
 }
 
 // Token e segredo da Meta: Usuário do Sistema (env) ou o login feito no painel
-export async function metaAuth() {
+export async function metaAuth(clientId) {
+  const own = await getClientConn("meta", clientId);
+  if (own?.accessToken) return { token: own.accessToken, secret: (await apps()).meta.appSecret, source: "client" };
   if (process.env.META_ACCESS_TOKEN) return { token: process.env.META_ACCESS_TOKEN, secret: process.env.META_APP_SECRET || "", source: "env" };
   const conn = await getConn("meta");
   if (!conn?.accessToken) throw Object.assign(new Error("Facebook não conectado — conecte em Integrações no painel da agência (variável META_ACCESS_TOKEN não configurada)"), { status: 503 });
@@ -65,12 +72,14 @@ export async function metaAuth() {
 }
 
 // Refresh token do Google: env ou o login feito no painel
-export async function googleAuth() {
+export async function googleAuth(clientId) {
   const a = (await apps()).google;
-  const refreshToken = process.env.GOOGLE_ADS_REFRESH_TOKEN || (await getConn("google"))?.refreshToken || "";
+  const own = await getClientConn("google", clientId);
+  const refreshToken = own?.refreshToken || process.env.GOOGLE_ADS_REFRESH_TOKEN || (await getConn("google"))?.refreshToken || "";
   const miss = (n) => Object.assign(new Error(`Variável ${n} não configurada`), { status: 503 });
   if (!a.clientId || !a.clientSecret) throw miss("GOOGLE_ADS_CLIENT_ID");
   if (!a.developerToken) throw miss("GOOGLE_ADS_DEVELOPER_TOKEN");
   if (!refreshToken) throw Object.assign(new Error("Google não conectado — conecte em Integrações no painel da agência (variável GOOGLE_ADS_REFRESH_TOKEN não configurada)"), { status: 503 });
-  return { ...a, refreshToken };
+  // login próprio do cliente: a MCC da agência não se aplica (cada conta diz por qual gerente é acessada)
+  return { ...a, refreshToken, source: own?.refreshToken ? "client" : "agency", loginCustomerId: own?.refreshToken ? "" : a.loginCustomerId };
 }

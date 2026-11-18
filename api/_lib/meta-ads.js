@@ -11,8 +11,9 @@ const sumActions = (list, types) =>
 const actId = (id) => (String(id).startsWith("act_") ? id : `act_${id}`);
 
 // tk: token alternativo (ex.: token de página). Padrão: Usuário do Sistema (env) ou o login feito no painel.
-export async function graphGet(path, params = new URLSearchParams(), tk) {
-  const auth = await metaAuth();
+// clientId: usa o login do Facebook do próprio cliente, se ele tiver conectado.
+export async function graphGet(path, params = new URLSearchParams(), tk, clientId) {
+  const auth = await metaAuth(clientId);
   tk = tk || auth.token;
   if (auth.secret) params.set("appsecret_proof", crypto.createHmac("sha256", auth.secret).update(tk).digest("hex"));
   let url = `https://graph.facebook.com/${VERSION()}/${path}?${params}`;
@@ -30,7 +31,7 @@ export async function graphGet(path, params = new URLSearchParams(), tk) {
 }
 
 // Linhas dia × campanha
-export async function fetchMetaAds(account, from, to) {
+export async function fetchMetaAds(account, from, to, clientId) {
   const resultTypes = account.resultActionTypes?.length ? account.resultActionTypes : ["lead"];
   const revenueTypes = account.revenueActionTypes?.length ? account.revenueActionTypes : ["purchase"];
   const params = new URLSearchParams({
@@ -40,7 +41,7 @@ export async function fetchMetaAds(account, from, to) {
     fields: "campaign_id,campaign_name,spend,impressions,clicks,actions,action_values",
     limit: "500",
   });
-  const data = await graphGet(`${actId(account.adAccountId)}/insights`, params);
+  const data = await graphGet(`${actId(account.adAccountId)}/insights`, params, undefined, clientId);
   return data.map((r) => ({
     date: r.date_start,
     platform: "meta",
@@ -58,12 +59,12 @@ export async function fetchMetaAds(account, from, to) {
 
 // Alcance (pessoas únicas) e frequência do período inteiro.
 // Alcance diário NÃO pode ser somado — por isso é uma consulta separada, sem quebra por dia.
-export async function fetchMetaSummary(account, from, to) {
+export async function fetchMetaSummary(account, from, to, clientId) {
   const params = new URLSearchParams({
     time_range: JSON.stringify({ since: from, until: to }),
     fields: "reach,frequency,impressions",
   });
-  const data = await graphGet(`${actId(account.adAccountId)}/insights`, params);
+  const data = await graphGet(`${actId(account.adAccountId)}/insights`, params, undefined, clientId);
   const r = data[0] || {};
   return { reach: Number(r.reach || 0), frequency: Number(r.frequency || 0) };
 }
@@ -71,8 +72,8 @@ export async function fetchMetaSummary(account, from, to) {
 /* ---------- Listas para o painel da agência ---------- */
 const AD_STATUS = { 1: "Ativa", 2: "Desativada", 3: "Pagamento pendente", 7: "Em análise", 9: "Período de carência", 101: "Encerrada" };
 
-export async function listMetaAdAccounts() {
-  const rows = await graphGet("me/adaccounts", new URLSearchParams({ fields: "account_id,name,account_status,currency,business{name}", limit: "200" }));
+export async function listMetaAdAccounts(clientId) {
+  const rows = await graphGet("me/adaccounts", new URLSearchParams({ fields: "account_id,name,account_status,currency,business{name}", limit: "200" }), undefined, clientId);
   return rows.map((a) => ({
     id: `act_${a.account_id}`, name: a.name, currency: a.currency,
     status: AD_STATUS[a.account_status] || "—", business: a.business?.name || "",
@@ -80,8 +81,8 @@ export async function listMetaAdAccounts() {
 }
 
 // Páginas do Facebook + Instagram ligado a cada uma
-export async function listPages() {
-  const rows = await graphGet("me/accounts", new URLSearchParams({ fields: "id,name,instagram_business_account{id,username,followers_count}", limit: "200" }));
+export async function listPages(clientId) {
+  const rows = await graphGet("me/accounts", new URLSearchParams({ fields: "id,name,instagram_business_account{id,username,followers_count}", limit: "200" }), undefined, clientId);
   return rows.map((p) => ({
     id: p.id, name: p.name,
     instagram: p.instagram_business_account ? { id: p.instagram_business_account.id, username: p.instagram_business_account.username, followers: p.instagram_business_account.followers_count || 0 } : null,

@@ -43,7 +43,7 @@ function clean(input, existing) {
 
   // Contas vinculadas
   const g = input.googleAds || {};
-  if (str(g.customerId)) c.googleAds = { customerId: str(g.customerId, 20).replace(/[^\d-]/g, ""), name: str(g.name, 120) };
+  if (str(g.customerId)) c.googleAds = { customerId: str(g.customerId, 20).replace(/[^\d-]/g, ""), name: str(g.name, 120), loginCustomerId: str(g.loginCustomerId, 20).replace(/[^\d-]/g, "") };
   const m = input.metaAds || {};
   if (str(m.adAccountId)) {
     const id = str(m.adAccountId, 40).replace(/[^\d_act]/g, "");

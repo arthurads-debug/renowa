@@ -127,7 +127,7 @@ export function initIntegrations({ state, api, toast }) {
         h("li", {}, "Em APIs e serviços → Credenciais → Criar credenciais → ", h("strong", {}, "ID do cliente OAuth"), " (Aplicativo da Web) e cole este endereço em “URIs de redirecionamento autorizados”:",
           h("div", { class: "int__uri" }, h("code", {}, g.redirectUri), copyBtn(g.redirectUri))),
         h("li", {}, "Copie o ", h("strong", {}, "ID do cliente"), " e a ", h("strong", {}, "Chave secreta"), ". O ", h("strong", {}, "token de desenvolvedor"), " fica no Google Ads → Ferramentas → Central de API (na sua MCC)."),
-        h("li", {}, "Em ", h("a", { class: "link", href: "https://console.cloud.google.com/auth/audience", target: "_blank", rel: "noopener" }, "Google Auth Platform → Público-alvo"), ", adicione o e-mail que vai conectar em ", h("strong", {}, "Usuários de teste"), " (sem isso o Google mostra “Erro 403: access_denied”).")),
+        h("li", {}, "Em ", h("a", { class: "link", href: "https://console.cloud.google.com/auth/audience", target: "_blank", rel: "noopener" }, "Google Auth Platform → Público-alvo"), ", clique em ", h("strong", {}, "Publicar app"), " → Confirmar.")),
       h("div", { class: "int__form" },
         devOnly ? null : field("g-client", "ID do cliente", { placeholder: "…apps.googleusercontent.com", value: g.clientId || "" }),
         devOnly ? null : field("g-secret", "Chave secreta do cliente", { type: "password", placeholder: g.clientSecret ? `Salva (${g.clientSecret})` : "Cole aqui" }),
@@ -144,19 +144,53 @@ export function initIntegrations({ state, api, toast }) {
       f.sample?.length ? h("div", { class: "int__sample" }, f.sample.map((n) => h("span", { class: "chip st--plan" }, n))) : null);
   }
 
+  const ext = (href, text) => h("a", { class: "link", href, target: "_blank", rel: "noopener" }, text);
+
+  function googleSetupCard(g) {
+    const ready = g.appReady && g.devReady;
+    return h("article", { class: `int${ready ? " is-on" : ""}` },
+      h("header", { class: "int__head" }, LOGO.google(),
+        h("div", {}, h("h2", {}, "Google Ads"), h("p", { class: "muted" }, "Pesquisa, YouTube, Display e Performance Max")),
+        h("span", { class: `chip ${ready ? "st--ok" : "st--plan"}` }, ready ? "Ativo" : "Falta ativar")),
+      ready ? [
+        h("p", { class: "int__lead" }, "Ativo. Para ver os números de um cliente: ", h("a", { class: "link", href: "#clientes" }, "Clientes"), " → Editar e contas → ", h("strong", {}, "Conectar Google"), "."),
+        h("div", { class: "int__check" },
+          h("strong", {}, "Confira uma vez (2 minutos) para nenhum cliente travar:"),
+          h("ol", { class: "int__steps" },
+            h("li", {}, "Abra ", ext("https://console.cloud.google.com/auth/audience", "Google Cloud → Público-alvo"), " e, se aparecer o botão ", h("strong", {}, "Publicar app"), ", clique nele e confirme. ",
+              h("span", { class: "muted" }, "Sem isso, só e-mails da lista de teste conseguem conectar e o acesso cai a cada 7 dias.")),
+            h("li", {}, "Abra a ", ext("https://ads.google.com/aw/apicenter", "Central de API do Google Ads"), " (na conta de administrador) e veja o ", h("strong", {}, "Nível de acesso"), ". ",
+              h("span", { class: "muted" }, "“Explorador” ou “Básico”: tudo certo. “Conta de teste”: clique em solicitar Acesso básico.")))),
+        h("details", { class: "int__edit" }, h("summary", {}, "Trocar credenciais do Google"), setupGoogle(g)),
+      ] : setupGoogle(g));
+  }
+
+  function metaSetupCard(m) {
+    const ready = m.appReady || m.source === "env";
+    return h("article", { class: `int${ready ? " is-on" : ""}` },
+      h("header", { class: "int__head" }, LOGO.meta(),
+        h("div", {}, h("h2", {}, "Facebook e Instagram"), h("p", { class: "muted" }, "Anúncios da Meta, Páginas e Instagram")),
+        h("span", { class: `chip ${ready ? "st--ok" : "st--plan"}` }, ready ? "Ativo" : "Falta ativar")),
+      ready ? [
+        h("p", { class: "int__lead" }, "Ativo. Para ver os números de um cliente: ", h("a", { class: "link", href: "#clientes" }, "Clientes"), " → Editar e contas → ", h("strong", {}, "Conectar Facebook"), "."),
+        h("p", { class: "muted int__note" }, "Dica: entre com o Facebook da agência que já administra a página e a conta de anúncios do cliente no Gerenciador de Negócios. É o caminho mais rápido."),
+        h("details", { class: "int__edit" }, h("summary", {}, "Trocar credenciais da Meta"), setupMeta(m)),
+      ] : setupMeta(m));
+  }
+
   function render() {
     const box = $("#integrations");
     if (!box) return;
     if (!data) { box.replaceChildren(h("p", { class: "muted" }, loading ? "Verificando conexões…" : "")); return; }
     box.replaceChildren(...[
       !data.store && !state.demo ? h("p", { class: "int__renew is-warn" }, "O banco de dados não está ligado: as conexões não podem ser salvas.") : null,
-      h("div", { class: "ints" }, metaCard(data.meta), googleCard(data.google)),
+      h("div", { class: "ints" }, googleSetupCard(data.google), metaSetupCard(data.meta)),
       h("section", { class: "int__how" },
-        h("h3", {}, "Depois de conectar"),
+        h("h3", {}, "Como conectar cada cliente"),
         h("ol", {},
-          h("li", {}, "Vá em ", h("a", { class: "link", href: "#clientes" }, "Clientes"), " → Editar e contas."),
-          h("li", {}, "Escolha a conta de anúncio, a página e o Instagram de cada cliente na lista (sem copiar IDs)."),
-          h("li", {}, "Pronto: o relatório do cliente passa a mostrar os dados em tempo real.")),
+          h("li", {}, "Em ", h("a", { class: "link", href: "#clientes" }, "Clientes"), ", abra o cliente (Editar e contas)."),
+          h("li", {}, "Clique em ", h("strong", {}, "Conectar Google"), " ou ", h("strong", {}, "Conectar Facebook"), " e entre com o e-mail que administra os anúncios dele. Ou envie o link pelo WhatsApp para o próprio cliente clicar."),
+          h("li", {}, "A conta é escolhida sozinha e o painel mostra na hora os números dos últimos 30 dias. Se aparecer em vermelho, a mensagem diz o que fazer.")),
         loading ? h("p", { class: "muted" }, "Atualizando…") : h("button", { type: "button", class: "btn btn--ghost btn--sm", onclick: () => load(true) }, "Atualizar status")),
     ].filter(Boolean));
   }

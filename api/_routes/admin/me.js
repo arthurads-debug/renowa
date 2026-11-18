@@ -1,18 +1,20 @@
 import { json, fail } from "../../_lib/http.js";
 import { requireAdmin } from "../../_lib/admin.js";
 import { storeEnabled } from "../../_lib/store.js";
+import { apps } from "../../_lib/connections.js";
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   try {
     const s = requireAdmin(req, res);
     if (!s) return;
     const env = process.env;
+    const a = await apps();
     return json(res, 200, {
       email: s.sub,
       setup: {
         store: storeEnabled(),
-        google: !!(env.GOOGLE_ADS_DEVELOPER_TOKEN && env.GOOGLE_ADS_REFRESH_TOKEN && env.GOOGLE_ADS_LOGIN_CUSTOMER_ID),
-        meta: !!env.META_ACCESS_TOKEN,
+        google: !!(a.google.clientId && a.google.developerToken),
+        meta: !!(env.META_ACCESS_TOKEN || (a.meta.appId && a.meta.appSecret)),
         whatsapp: !!env.AGENCY_WHATSAPP,
       },
     });

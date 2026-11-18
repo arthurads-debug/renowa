@@ -1,0 +1,124 @@
+<!doctype html>
+<!-- Página do convite: o cliente conecta o próprio Google Ads e Facebook em 1 minuto. -->
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="referrer" content="same-origin" />
+  <title>Conectar contas · Renowa</title>
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" />
+  <style>
+    :root { --bg: #000; --card: #0E0E14; --line: rgba(255,255,255,.12); --ink: #F4F5F8; --ink-2: rgba(244,245,248,.72); --blue: #1E12EA; --blue-2: #5B52FF; --orange: #FA4802; --good: #2FD27C; --bad: #FF6B5B; }
+    * { box-sizing: border-box; margin: 0; }
+    body { min-height: 100dvh; background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(30,18,234,.45), transparent 70%), var(--bg); color: var(--ink); font-family: "Archivo", system-ui, sans-serif; line-height: 1.5; display: grid; place-items: start center; padding: 32px 16px 48px; }
+    main { width: min(560px, 100%); display: grid; gap: 22px; }
+    .logo { height: 26px; width: auto; }
+    h1 { font-size: clamp(1.7rem, 6vw, 2.3rem); line-height: 1.1; letter-spacing: -.02em; font-weight: 800; font-stretch: 110%; }
+    h1 em { font-style: normal; color: var(--blue-2); }
+    .lead { color: var(--ink-2); font-size: 1.02rem; }
+    .card { display: grid; gap: 12px; padding: 18px; border-radius: 20px; background: var(--card); border: 1px solid var(--line); }
+    .card.is-on { border-color: rgba(47,210,124,.5); }
+    .card header { display: flex; align-items: center; gap: 12px; }
+    .ico { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; flex: none; }
+    .ico--g { background: #fff; } .ico--m { background: #1877F2; }
+    .ico svg { width: 24px; height: 24px; }
+    .card h2 { font-size: 1.1rem; font-weight: 800; }
+    .card p.sub { font-size: .9rem; color: var(--ink-2); }
+    .st { font-size: .92rem; font-weight: 700; color: var(--good); }
+    .btn { display: flex; align-items: center; justify-content: center; gap: 8px; height: 52px; border-radius: 14px; font: inherit; font-weight: 800; font-size: 1rem; text-decoration: none; color: #fff; background: var(--blue); border: 0; cursor: pointer; transition: transform .15s, background .2s; }
+    .btn:hover { background: #2a1ff5; transform: translateY(-1px); }
+    .btn:focus-visible { outline: 3px solid var(--blue-2); outline-offset: 3px; }
+    .btn--ghost { background: transparent; border: 1.5px solid var(--line); color: var(--ink); height: 44px; font-size: .92rem; }
+    .btn[aria-disabled="true"] { opacity: .4; pointer-events: none; }
+    .tips { list-style: none; padding: 0; display: grid; gap: 10px; font-size: .92rem; color: var(--ink-2); }
+    .tips li { display: flex; gap: 10px; }
+    .tips li::before { content: ""; flex: none; width: 6px; height: 6px; margin-top: .55em; border-radius: 50%; background: var(--orange); }
+    .tips b { color: var(--ink); }
+    .msg { padding: 12px 14px; border-radius: 14px; font-size: .95rem; }
+    .msg--ok { background: rgba(47,210,124,.12); color: #BFF5D8; border: 1px solid rgba(47,210,124,.35); }
+    .msg--err { background: rgba(255,107,91,.12); color: #FFD2CC; border: 1px solid rgba(255,107,91,.35); }
+    .done { text-align: center; padding: 22px; border-radius: 20px; background: linear-gradient(135deg, rgba(30,18,234,.35), rgba(30,18,234,.1)); border: 1px solid rgba(91,82,255,.45); }
+    .done strong { display: block; font-size: 1.25rem; margin-bottom: 4px; }
+    footer { font-size: .8rem; color: rgba(244,245,248,.45); text-align: center; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <main>
+    <img class="logo" src="/assets/brand/renowa-logo-light.svg" alt="Renowa" width="155" height="26" />
+    <div>
+      <h1 id="title">Conecte suas contas</h1>
+      <p class="lead" id="lead">Leva 1 minuto. Assim a Renowa mostra os resultados dos seus anúncios no painel, em tempo real.</p>
+    </div>
+    <div id="msg" class="msg" role="status" hidden></div>
+    <div id="done" class="done" hidden><strong>Tudo conectado ✓</strong>Pode fechar esta página. Os números já aparecem no seu painel.</div>
+
+    <section class="card" id="card-google" hidden>
+      <header>
+        <span class="ico ico--g" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.3c0-.8-.1-1.5-.2-2.2H12v4.2h5.9a5 5 0 0 1-2.2 3.3v2.7h3.5c2.1-1.9 3.3-4.7 3.3-8z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.5-2.7c-1 .7-2.3 1-3.8 1-2.9 0-5.4-2-6.3-4.6H2.1v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.7 14c-.2-.7-.4-1.3-.4-2s.1-1.4.4-2V7.2H2.1a11 11 0 0 0 0 9.6z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.1-3.1A11 11 0 0 0 2.1 7.2L5.7 10c.9-2.6 3.4-4.6 6.3-4.6z"/></svg></span>
+        <div><h2>Google Ads</h2><p class="sub">Entre com o e-mail que você usa no Google Ads.</p></div>
+      </header>
+      <p class="st" id="st-google" hidden></p>
+      <a class="btn" id="go-google" href="#">Conectar Google</a>
+    </section>
+
+    <section class="card" id="card-meta" hidden>
+      <header>
+        <span class="ico ico--m" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="#fff" d="M13.4 21v-7.6h2.6l.4-3h-3V8.5c0-.9.3-1.5 1.5-1.5h1.6V4.3c-.3 0-1.2-.1-2.3-.1-2.3 0-3.9 1.4-3.9 4V10.4H7.7v3h2.6V21z"/></svg></span>
+        <div><h2>Facebook e Instagram</h2><p class="sub">Entre com o Facebook que administra a página e os anúncios.</p></div>
+      </header>
+      <p class="st" id="st-meta" hidden></p>
+      <a class="btn" id="go-meta" href="#">Conectar Facebook</a>
+    </section>
+
+    <ul class="tips" id="tips" hidden>
+      <li><span>Na tela do Google ou do Facebook, é só clicar em <b>Continuar</b>. A Renowa só <b>lê</b> os números; não altera nem cria anúncios.</span></li>
+      <li><span>Se o Google mostrar <b>“O Google não verificou este app”</b>, clique em <b>Avançado</b> e depois em <b>Acessar</b>.</span></li>
+      <li><span>Use o navegador que você já usa no dia a dia (Chrome ou Safari), onde sua conta já está aberta.</span></li>
+    </ul>
+    <footer>Renowa · conexão segura pelo login oficial do Google e da Meta. Você pode remover o acesso quando quiser.</footer>
+  </main>
+  <script type="module">
+    const $ = (s) => document.querySelector(s);
+    const q = new URLSearchParams(location.search);
+    const t = q.get("t") || "";
+    const msg = (text, ok) => { const m = $("#msg"); m.textContent = text; m.className = `msg msg--${ok ? "ok" : "err"}`; m.hidden = false; };
+    if (q.get("erro")) msg(q.get("erro"), false);
+    else if (q.get("ok")) msg(q.get("ok") === "1" ? "Conectado!" : `Conectado! ${q.get("ok")}`, true);
+    // tira o resultado do endereço (fica só o link do convite)
+    if (q.get("erro") || q.get("ok")) history.replaceState(null, "", t ? `?t=${encodeURIComponent(t)}` : location.pathname);
+
+    async function load() {
+      if (!t) { $("#title").textContent = "Link incompleto"; $("#lead").textContent = "Peça para a agência enviar o link de novo."; return; }
+      let d;
+      try {
+        const r = await fetch(`/api/connect?t=${encodeURIComponent(t)}`);
+        d = await r.json();
+        if (!r.ok) throw new Error(d.error || "Link inválido.");
+      } catch (e) { $("#title").textContent = "Link expirado"; $("#lead").textContent = e.message; return; }
+      $("#title").innerHTML = "";
+      $("#title").append("Conecte as contas da ", Object.assign(document.createElement("em"), { textContent: d.name }));
+      for (const p of ["google", "meta"]) {
+        const s = d[p];
+        if (!s.ready) continue;
+        $(`#card-${p}`).hidden = false;
+        $(`#go-${p}`).href = `/api/oauth/${p}?convite=${encodeURIComponent(t)}`;
+        if (s.connected) {
+          $(`#card-${p}`).classList.add("is-on");
+          const st = $(`#st-${p}`); st.hidden = false; st.textContent = `✓ Conectado${s.account ? ` · ${s.account}` : ""}`;
+          const b = $(`#go-${p}`); b.textContent = "Conectar de novo"; b.className = "btn btn--ghost";
+        }
+      }
+      $("#tips").hidden = false;
+      const shown = ["google", "meta"].filter((p) => d[p].ready);
+      if (shown.length && shown.every((p) => d[p].connected)) $("#done").hidden = false;
+    }
+    load();
+  </script>
+</body>
+</html>

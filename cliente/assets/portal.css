@@ -1057,3 +1057,18 @@ body.printing #print-report { width: 718px; max-width: none; padding-left: 0; pa
 .mix__big { border: 1.5px solid transparent; }
 .mix__big--paid { background: #EEEDFF !important; border-color: #D2CEFF; }
 .mix__big--org { background: #FFF1EA !important; border-color: #FFCDB4; }
+/* relatório: quadro principal mais enxuto (o essencial: valor, vezes, pessoas e a % da população) */
+#print-report .hero-card__kicker, #print-report .hero-card .pop__legend { display: none !important; }
+#print-report .hero-card { padding: 18px 22px; }
+#print-report .hero-card__text { font-size: 19px !important; line-height: 1.25; max-width: none; }
+#print-report .hero-call { margin-top: 14px; padding: 10px 16px; }
+#print-report .hero-call strong { font-size: 40px; }
+#print-report .hero-card .pop { margin-top: 10px; }
+#print-report .hero-card::after { width: 120px; height: 120px; border-width: 20px; right: -50px; top: -50px; }
+#print-report .mix__big { padding: 12px 16px; }
+#print-report .pr-pair--head > :not(.card__head):not(.sec-title) { margin-top: 12px; }
+/* relatório: posts recentes compactos, para o título ir junto com eles */
+#print-report .post .thumb { aspect-ratio: 4 / 3; }
+#print-report .post__caption { -webkit-line-clamp: 1 !important; }
+#print-report .post__body { padding: 8px 10px 10px; gap: 4px; }
+#print-report .post__stats { font-size: 11px; gap: 8px; }

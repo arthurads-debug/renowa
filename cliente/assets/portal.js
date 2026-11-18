@@ -298,7 +298,10 @@ $("#btn-print").addEventListener("click", printReport);
    O relatório é montado na largura da folha A4 (718 px). Cada bloco que cabe numa página vira uma peça única
    (inline-block): nenhum navegador — nem o Safari do iPhone — parte uma peça dessas ao meio; se não couber no fim
    da página, ela vai inteira para a próxima. Blocos maiores que uma página são abertos e os filhos viram peças. */
-const PAGE_PX = 900; // altura útil de uma página A4 com margem de segurança
+// Peças pequenas: cabem com folga em qualquer página A4 (o iPhone usa uma página "mais baixa" que o computador)
+const PAGE_PX = 680;
+// Estes contêineres nunca viram peça inteira: cada filho vira uma peça (ex.: cada quadro do Pago e orgânico)
+const OPEN = ".mix, .mix__top, .mix__grid, .pr-sec__body, .chans-wrap";
 const INLINE = { block: "inline-block", grid: "inline-grid", flex: "inline-flex", table: "inline-table", "list-item": "inline-block", "flow-root": "inline-block" };
 function lockBlocks(root) {
   const lock = (el) => {
@@ -310,11 +313,23 @@ function lockBlocks(root) {
     el.style.setProperty("vertical-align", "top", "important");
     el.style.setProperty("box-sizing", "border-box", "important");
   };
+  const visible = (el) => el && getComputedStyle(el).display !== "none";
   const walk = (parent) => {
+    // título de quadro sempre preso ao conteúdo logo abaixo (nunca sozinho no pé da página)
+    for (const head of [...parent.children].filter((c) => c.matches(".card__head, .sec-title") && visible(c))) {
+      let next = head.nextElementSibling;
+      while (next && !visible(next)) next = next.nextElementSibling;
+      if (!next) continue;
+      if (head.getBoundingClientRect().height + next.getBoundingClientRect().height <= PAGE_PX) {
+        const pair = h("div", { class: "pr-pair" });
+        head.before(pair);
+        pair.append(head, next);
+      }
+    }
     for (const el of [...parent.children]) {
       const cs = getComputedStyle(el);
       if (cs.display === "none" || cs.display.startsWith("inline")) continue;
-      if (el.getBoundingClientRect().height <= PAGE_PX) lock(el);
+      if (!el.matches(OPEN) && el.getBoundingClientRect().height <= PAGE_PX) lock(el);
       else walk(el);
     }
   };

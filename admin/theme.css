@@ -22,7 +22,7 @@ body { background: var(--bg); }
   radial-gradient(ellipse 70% 55% at 70% 35%, rgba(30, 18, 234, .45), transparent 70%),
   radial-gradient(ellipse 40% 30% at 20% 90%, rgba(250, 72, 2, .14), transparent 70%), var(--night); }
 .login__logo { position: relative; z-index: 2; height: 24px; width: auto; }
-.login__3d { position: absolute; inset: 8% 0 26% 0; z-index: 1; }
+.login__3d { position: absolute; inset: 10% 4% 30% 4%; z-index: 1; }
 .login__3d canvas { width: 100% !important; height: 100% !important; display: block; }
 .login--admin .login__pitch { position: relative; z-index: 2; }
 .login--admin .login__big span { color: var(--blue-2); }

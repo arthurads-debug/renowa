@@ -85,7 +85,7 @@ async function start(el, intensity, interactive) {
   }
 
   // afasta a câmera quando a área é estreita, para o símbolo (e o anel) caberem inteiros
-  const fit = () => { renderer.setSize(W(), H()); camera.aspect = W() / H(); camera.position.z = Math.max(9, 9.4 / camera.aspect); camera.updateProjectionMatrix(); };
+  const fit = () => { renderer.setSize(W(), H()); camera.aspect = W() / H(); camera.position.z = Math.max(9.5, 11.5 / camera.aspect); camera.updateProjectionMatrix(); };
   fit();
   new ResizeObserver(fit).observe(el);
   let visible = true, raf = 0;

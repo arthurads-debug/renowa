@@ -291,7 +291,7 @@ function openEditor(client, prefill = {}, opts = {}) {
   requestAnimationFrame(() => d.classList.add("is-open"));
   state.cx = null;
   renderEditor();
-  if (opts.focusConnect) $("#cx")?.scrollIntoView({ block: "start" }); else $("#ed-name")?.focus();
+  if (opts.focusConnect) { const p = $("#drawer .drawer__panel"), t = $("#cx"); if (p && t) p.scrollTop = t.offsetTop - 10; } else $("#ed-name")?.focus();
   if (client) loadCx(client.id);
   if (!state.accounts || state.accountsFor !== (client?.id || null)) loadAccounts(false);
 }

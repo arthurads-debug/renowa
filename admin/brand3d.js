@@ -84,7 +84,10 @@ async function start(el, intensity, interactive) {
     host.addEventListener("pointerleave", () => { tx = 0; ty = 0; });
   }
 
-  new ResizeObserver(() => { renderer.setSize(W(), H()); camera.aspect = W() / H(); camera.updateProjectionMatrix(); }).observe(el);
+  // afasta a câmera quando a área é estreita, para o símbolo (e o anel) caberem inteiros
+  const fit = () => { renderer.setSize(W(), H()); camera.aspect = W() / H(); camera.position.z = Math.max(9, 9.4 / camera.aspect); camera.updateProjectionMatrix(); };
+  fit();
+  new ResizeObserver(fit).observe(el);
   let visible = true, raf = 0;
   new IntersectionObserver((en) => { visible = en.some((x) => x.isIntersecting); if (visible && !raf) raf = requestAnimationFrame(tick); }).observe(el);
 

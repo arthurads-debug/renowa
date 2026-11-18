@@ -21,6 +21,18 @@ async function insights(id, clientId) {
   return {};
 }
 
+// Novos seguidores no período (a Meta só guarda os últimos 30 dias, dia a dia)
+async function followersGained(userId, from, to, clientId) {
+  const min = new Date(Date.now() - 29 * 864e5).toISOString().slice(0, 10);
+  const f = from < min ? min : from;
+  if (f > to) return null;
+  try {
+    const rows = await graphGet(`${userId}/insights`, new URLSearchParams({ metric: "follower_count", period: "day", since: String(Math.floor(Date.parse(`${f}T00:00:00Z`) / 1000)), until: String(Math.floor(Date.parse(`${to}T23:59:59Z`) / 1000)) }), undefined, clientId);
+    const values = rows?.[0]?.values || [];
+    return { value: values.reduce((s, v) => s + Number(v.value || 0), 0), since: f };
+  } catch { return null; }
+}
+
 export async function fetchInstagram(account, from, to, clientId) {
   const profile = await graphGet(account.userId, new URLSearchParams({ fields: "username,followers_count,media_count" }), undefined, clientId);
   const since = Math.floor(Date.parse(`${from}T00:00:00Z`) / 1000);
@@ -50,5 +62,5 @@ export async function fetchInstagram(account, from, to, clientId) {
       interactions: s.total_interactions || likes + comments + (s.saved || 0) + (s.shares || 0),
     };
   });
-  return { username: profile.username, followers: profile.followers_count || 0, posts };
+  return { username: profile.username, followers: profile.followers_count || 0, posts, gained: await followersGained(account.userId, from, to, clientId) };
 }

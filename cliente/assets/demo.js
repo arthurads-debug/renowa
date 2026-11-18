@@ -1,6 +1,6 @@
 // Modo demonstração: 3 clientes de perfis diferentes, com dados simulados e determinísticos.
 // Mesmo formato que a API real devolve, então as telas não sabem a diferença.
-import { iso, parseISO, addDays, today } from "./util.js";
+import { iso, parseISO, addDays, today, daysBetween } from "./util.js";
 
 export const DEMO_PASSWORD = "demo123";
 const STORE_KEY = "renowa-demo-clients";
@@ -237,8 +237,8 @@ export function demoSocial(client, from, to) {
     })
     .reverse();
   return {
-    instagram: client.has.instagram ? { connected: true, username: client.instagramUser || client.id, followers: base, posts: build("instagram", base, 1) } : { connected: false },
-    facebook: client.has.facebook ? { connected: true, username: client.facebookName || client.name, followers: Math.round(base * 0.62), posts: build("facebook", Math.round(base * 0.62), 0.55) } : { connected: false },
+    instagram: client.has.instagram ? { connected: true, username: client.instagramUser || client.id, followers: base, posts: build("instagram", base, 1), gained: { value: Math.round(base * 0.0006 * Math.min(30, daysBetween(from, to))), since: from } } : { connected: false },
+    facebook: client.has.facebook ? { connected: true, username: client.facebookName || client.name, followers: Math.round(base * 0.62), posts: build("facebook", Math.round(base * 0.62), 0.55), gained: { value: Math.round(base * 0.00015 * Math.min(30, daysBetween(from, to))), since: from } } : { connected: false },
   };
 }
 

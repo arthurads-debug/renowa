@@ -36,6 +36,19 @@ async function postReach(id, token, clientId) {
   return 0;
 }
 
+// Novos seguidores da página no período (a Meta troca o nome dessas métricas: tenta a atual e as antigas)
+async function followsGained(pageId, from, to, token, clientId) {
+  const since = String(Math.floor(Date.parse(`${from}T00:00:00Z`) / 1000)), until = String(Math.floor(Date.parse(`${to}T23:59:59Z`) / 1000) + 1);
+  for (const metric of ["page_daily_follows_unique", "page_follows", "page_fan_adds_unique"]) {
+    try {
+      const rows = await graphGet(`${pageId}/insights`, new URLSearchParams({ metric, period: "day", since, until }), token, clientId);
+      const values = rows?.[0]?.values;
+      if (values?.length) return { value: values.reduce((s, v) => s + Number(v.value || 0), 0), since: from };
+    } catch { /* tenta a próxima */ }
+  }
+  return null;
+}
+
 export async function fetchFacebook(account, from, to, clientId) {
   const token = await pageToken(account.pageId, clientId);
   const page = await graphGet(account.pageId, new URLSearchParams({ fields: "name,followers_count,fan_count" }), token, clientId);
@@ -48,8 +61,10 @@ export async function fetchFacebook(account, from, to, clientId) {
 
   const list = posts.slice(0, 40);
   const reach = await Promise.allSettled(list.map((p) => postReach(p.id, token, clientId)));
+  const gained = await followsGained(account.pageId, from, to, token, clientId);
   return {
     username: page.name,
+    gained,
     followers: Number(page.followers_count || page.fan_count || 0),
     posts: list.map((p, i) => {
       const likes = Number(p.reactions?.summary?.total_count || 0);

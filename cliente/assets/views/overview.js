@@ -7,7 +7,7 @@ import { mixFor } from "../mix.js";
 import { renderChart, observe } from "../charts.js";
 import { fmtDay, fmtDayLong, dec } from "../util.js";
 
-const PAID = "#1E12EA", ORG = "#0B0B14";
+const PAID = "#1E12EA", ORG = "#FA4802";
 const ui = { mix: "acc" };
 
 export function renderOverview(view, state, helpers) {
@@ -20,13 +20,16 @@ export function renderOverview(view, state, helpers) {
   // ---------- Herói: a frase do período ----------
   const hero = h("section", { class: "hero-card" },
     h("p", { class: "mono hero-card__kicker" }, PROFILE_TEXT[c.profile].lead),
-    h("p", { class: "hero-card__text" }, narrative(ctx, days)));
+    heroText(narrative(ctx, days)));
   const reach = ctx.reach?.current?.reach;
   if (c.profile === "awareness" && c.city?.population && reach) {
     const share = Math.min(1, reach / c.city.population);
+    hero.append(h("div", { class: "hero-call" },
+      h("strong", {}, share >= 1 ? "100%+" : pct(share, 0)),
+      h("span", {}, "da população de ", h("b", {}, c.city.name), " alcançada pelos anúncios", h("small", {}, `${int(reach)} pessoas diferentes de ${int(c.city.population)} habitantes`))));
     hero.append(h("div", { class: "pop" },
       h("div", { class: "pop__bar", role: "img", "aria-label": `${pct(share, 0)} da população alcançada` }, h("span", { style: { width: `${share * 100}%` } })),
-      h("p", { class: "pop__legend" }, h("strong", {}, share >= 1 ? "100%+" : pct(share, 0)), ` — pessoas alcançadas em relação aos ${int(c.city.population)} habitantes de ${c.city.name}. Estimativa: a Meta conta todas as pessoas na região segmentada, inclusive visitantes e moradores de cidades vizinhas.`)));
+      h("p", { class: "pop__legend" }, "Estimativa: a Meta conta todas as pessoas na região segmentada, inclusive visitantes e moradores de cidades vizinhas.")));
   }
 
   // ---------- Coluna de conteúdo ----------
@@ -73,13 +76,7 @@ export function renderOverview(view, state, helpers) {
   }
 
   // ---------- Funil 3D (mantido entre as atualizações ao vivo se os números não mudarem) ----------
-  const cur = ctx.cur;
-  const stages = [
-    { label: "Impressões", value: cur.impressions },
-    { label: "Cliques", value: cur.clicks },
-    { label: c.resultLabel || "Resultados", value: cur.results },
-    ...(ctx.sales?.cur?.count ? [{ label: "Vendas informadas", value: ctx.sales.cur.count }] : []),
-  ];
+  const stages = funnelStages(state, ctx);
   const fkey = stages.map((s) => Math.round(s.value)).join("|");
   if (view._funnelKey !== fkey || !view._funnel) { view._funnelKey = fkey; view._funnel = funnelCard(stages); }
 
@@ -102,6 +99,39 @@ export function renderOverview(view, state, helpers) {
   ].filter(Boolean));
   if (mixCard?._draw) { mixCard._draw(); observe(mixCard._chart); }
   requestAnimationFrame(() => view.querySelectorAll(".mix__bar span, .mix__cmp i").forEach((el) => el.classList.add("is-in")));
+}
+
+/* ---------- Funil: do anúncio ao aumento de base ----------
+   Etapas em ordem lógica; uma etapa só entra se for menor que a anterior (para ser um funil de verdade).
+   A última é o crescimento total da base (Instagram + Facebook + YouTube), pago e orgânico. */
+function funnelStages(state, ctx) {
+  const c = state.client, cur = ctx.cur;
+  const cand = [
+    { label: "Impressões", value: cur.impressions },
+    { label: "Pessoas alcançadas", value: ctx.reach?.current?.reach || 0 },
+    { label: "Visualizações de vídeo", value: cur.videoViews },
+    { label: "Interações com os anúncios", value: cur.engagement },
+    { label: "Cliques", value: cur.clicks },
+    c.resultLabel && !/intera/i.test(c.resultLabel) ? { label: c.resultLabel, value: cur.results } : null,
+    ctx.sales?.cur?.count ? { label: "Vendas informadas", value: ctx.sales.cur.count } : null,
+  ].filter((x) => x && x.value > 0);
+  // do maior para o menor: cada etapa é um pedaço da anterior (impressões no topo)
+  const out = [];
+  for (const st of cand.sort((a, b) => b.value - a.value)) if (!out.length || st.value < out[out.length - 1].value) out.push(st);
+  const base = baseGrowth(state);
+  if (base.total > 0) out.push({ label: "Aumento da base", value: base.total, note: `novos seguidores e inscritos · pago + orgânico · ${base.parts.join(" · ")}` });
+  return out;
+}
+
+export function baseGrowth(state) {
+  const s = state.social || {}, y = state.youtube;
+  const parts = [];
+  let total = 0;
+  const add = (label, v) => { if (v > 0) { total += v; parts.push(`${label} +${int(v)}`); } };
+  add("Instagram", s.instagram?.gained?.value || 0);
+  add("Facebook", s.facebook?.gained?.value || 0);
+  if (y?.connected && y.current) add("YouTube", y.current.gained - y.current.lost);
+  return { total, parts };
 }
 
 /* ---------- Pago x orgânico ---------- */
@@ -175,6 +205,15 @@ function channelsSection(state, ctx) {
   }
   if (!cards.length) return null;
   return h("section", { class: "chans-wrap" }, h("h2", { class: "sec-title" }, "Seus canais"), h("div", { class: "chans" }, cards));
+}
+
+// Frase do período com os números em destaque (dinheiro, quantidades e porcentagens)
+function heroText(text) {
+  const main = text.split(" — ")[0].replace(/\.$/, "") + ".";
+  const parts = main.split(/(R\$\s?[\d.]+,\d{2}|\d+(?:,\d+)?%|\d{1,3}(?:\.\d{3})+(?:,\d+)?)/);
+  return h("p", { class: "hero-card__text" }, parts.map((p, i) => (i % 2
+    ? h("mark", { class: `hl${/^R\$/.test(p) ? " hl--money" : /%$/.test(p) ? " hl--pct" : ""}` }, p)
+    : p)));
 }
 
 const stat = (v, l) => h("div", { class: "mini-stat" }, h("strong", {}, v), h("span", {}, l));

@@ -3,19 +3,21 @@
 import { h, int, pct, safeDiv } from "./util.js";
 
 const THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js";
-const COLORS = ["#4A3FFF", "#6A5CFF", "#8F86FF", "#FA4802"];
+// azuis do mais escuro ao mais claro; a última etapa (o resultado final) sempre em laranja
+const BLUES = ["#1E12EA", "#3A2EF5", "#4A3FFF", "#6A5CFF", "#7F74FF", "#8F86FF", "#A39CFF"];
+const colorOf = (i, n) => (i === n - 1 ? "#FA4802" : BLUES[Math.min(i, BLUES.length - 1)]);
 const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export function funnelCard(stages) {
   const steps = stages.filter((s) => s.value > 0);
   if (steps.length < 2) return null;
   const stage = h("div", { class: "f3d__stage" });
-  const labels = h("ol", { class: "f3d__labels" }, steps.map((s, i) => h("li", { style: { "--c": COLORS[Math.min(i, COLORS.length - 1)] } },
+  const labels = h("ol", { class: "f3d__labels" }, steps.map((s, i) => h("li", { style: { "--c": colorOf(i, steps.length) }, class: i === steps.length - 1 ? "is-last" : "" },
     h("span", { class: "f3d__name" }, s.label),
     h("strong", {}, int(s.value)),
-    i ? h("small", {}, `${pct(safeDiv(s.value, steps[i - 1].value), s.value / steps[i - 1].value < 0.01 ? 2 : 1)} de ${steps[i - 1].label.toLowerCase()}`) : h("small", {}, "topo do funil"))));
+    s.note ? h("small", {}, s.note) : i ? h("small", {}, `${pct(safeDiv(s.value, steps[i - 1].value), s.value / steps[i - 1].value < 0.01 ? 2 : 1)} de ${steps[i - 1].label.toLowerCase()}`) : h("small", {}, "topo do funil"))));
   const box = h("section", { class: "card f3d" },
-    h("header", { class: "card__head" }, h("div", {}, h("h2", { class: "card__title" }, "Do anúncio ao resultado"), h("p", { class: "card__sub" }, "Funil do período · gire com o mouse ou o dedo"))),
+    h("header", { class: "card__head" }, h("div", {}, h("h2", { class: "card__title" }, "Do anúncio ao resultado"), h("p", { class: "card__sub" }, "Cada etapa mostra quantas pessoas seguiram para a próxima · gire com o mouse ou o dedo"))),
     h("div", { class: "f3d__body" }, stage, labels));
 
   const io = new IntersectionObserver((entries) => {
@@ -46,12 +48,13 @@ async function mount(stage, steps) {
   // raio de cada camada ∝ raiz da proporção (áreas comparáveis, sem sumir nas etapas pequenas)
   const max = steps[0].value;
   const rad = steps.map((s) => 0.7 + 1.45 * Math.cbrt(s.value / max));
+  for (let i = 1; i < rad.length; i++) rad[i] = Math.min(rad[i], rad[i - 1] * 0.94); // sempre afunilando
   rad.push(rad[rad.length - 1] * 0.7);
   const group = new THREE.Group();
-  const layerH = 0.86, gap = 0.12, total = steps.length * (layerH + gap);
+  const layerH = Math.min(0.86, 5 / steps.length), gap = Math.min(0.12, layerH * 0.14), total = steps.length * (layerH + gap);
   const layers = steps.map((s, i) => {
     const geo = new THREE.CylinderGeometry(rad[i], rad[i + 1], layerH, 64, 1, false);
-    const col = new THREE.Color(COLORS[Math.min(i, COLORS.length - 1)]);
+    const col = new THREE.Color(colorOf(i, steps.length));
     const mat = new THREE.MeshPhysicalMaterial({ color: col, emissive: col, emissiveIntensity: 0.28, roughness: 0.3, metalness: 0.1, clearcoat: 0.8, clearcoatRoughness: 0.25, transparent: true, opacity: 0.95, side: THREE.DoubleSide });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.y = total / 2 - i * (layerH + gap) - layerH / 2;

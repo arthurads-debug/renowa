@@ -99,8 +99,11 @@ export function renderSocial(view, state) {
 
   const grid = h("div", { class: "posts" });
   const paint = () => {
-    let list = ui.format === "all" ? posts : posts.filter((p) => p.format === ui.format);
-    list = [...list].sort(ui.sort === "recent" ? (a, b) => b.date.localeCompare(a.date) : ui.sort === "reach" ? (a, b) => b.reach - a.reach : (a, b) => safeDiv(b.interactions, b.reach) - safeDiv(a.interactions, a.reach));
+    // só os mais recentes: 12 no celular, 20 no computador (página leve e sem excesso)
+    const limit = matchMedia("(max-width: 760px)").matches ? 12 : 20;
+    let list = (ui.format === "all" ? posts : posts.filter((p) => p.format === ui.format));
+    list = [...list].sort((a, b) => b.date.localeCompare(a.date)).slice(0, limit);
+    list = list.sort(ui.sort === "recent" ? (a, b) => b.date.localeCompare(a.date) : ui.sort === "reach" ? (a, b) => b.reach - a.reach : (a, b) => safeDiv(b.interactions, b.reach) - safeDiv(a.interactions, a.reach));
     grid.replaceChildren(...list.map(postCard));
   };
   paint();
@@ -123,7 +126,8 @@ export function renderSocial(view, state) {
           h("p", { class: "formats__val" }, `${int(f.reach / f.n)} contas por post`)))),
         h("p", { class: "fineprint" }, `${int(savesShares)} salvamentos e compartilhamentos no período — sinal de conteúdo que as pessoas querem guardar ou mostrar a alguém.`))),
     card({
-      title: ui.network === "all" ? "Todos os posts" : `Posts no ${NET_NAME[ui.network]}`,
+      title: ui.network === "all" ? "Posts mais recentes" : `Posts mais recentes no ${NET_NAME[ui.network]}`,
+      sub: `Os ${matchMedia("(max-width: 760px)").matches ? 12 : 20} mais recentes do período`,
       tools: [select("Formato", ui.format, [["all", "Todos os formatos"], ...Object.keys(formats).map((f) => [f, f])], (v) => (ui.format = v)),
         select("Ordenar", ui.sort, [["recent", "Mais recentes"], ["reach", "Maior alcance"], ["eng", "Maior engajamento"]], (v) => (ui.sort = v))],
     }, grid),

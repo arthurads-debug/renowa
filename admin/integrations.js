@@ -197,7 +197,7 @@ export function initIntegrations({ state, api, toast }) {
 
   // volta do login (?conexao=meta&erro=...)
   const qs = new URLSearchParams(location.search);
-  if (qs.get("conexao")) {
+  if (qs.get("conexao") && !qs.get("cliente")) {
     const err = qs.get("erro");
     setTimeout(() => toast(err || `${qs.get("conexao") === "meta" ? "Facebook" : "Google"} conectado com sucesso.`), 400);
     history.replaceState(null, "", `${location.pathname}#integracoes`);

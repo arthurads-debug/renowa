@@ -31,6 +31,8 @@ export default async function handler(req, res) {
     }
     return json(res, 200, { ok: true, ...r });
   } catch (err) {
+    // registra a falha para o painel mostrar (em vez de sumir em silêncio)
+    try { const k = readIngestKey(new URL(req.url, "http://x").searchParams.get("k")); if (k) await saveScriptStatus(k.c, { ok: false, error: `O painel não conseguiu salvar: ${String(err.message || err).slice(0, 200)}` }); } catch { /* ignora */ }
     return fail(res, err);
   }
 }

@@ -4,6 +4,7 @@ import { findById } from "../_lib/clients.js";
 import { getSession } from "../_lib/session.js";
 import { cached } from "../_lib/cache.js";
 import { fetchYouTube } from "../_lib/youtube.js";
+import { proxied } from "./img.js";
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -20,7 +21,10 @@ export default async function handler(req, res) {
     const prev = ISO.test(pf) && ISO.test(pt) ? [pf, pt] : [null, null];
     try {
       const d = await cached(`yt:${client.id}:${client.youtube.channelId}:${from}:${to}:${prev[0]}`, () => fetchYouTube(client.youtube, from, to, ...prev), 15 * 60_000);
-      const { analyticsError, ...rest } = d;
+      const { analyticsError, ...rest } = structuredClone(d);
+      // capas e foto do canal entregues pelo próprio site (o Safari às vezes bloqueia imagens de outros domínios no PDF)
+      if (rest.channel) rest.channel.thumbnail = proxied(rest.channel.thumbnail);
+      for (const v of [...(rest.top || []), ...(rest.recent || [])]) v.thumbnail = proxied(v.thumbnail);
       if (analyticsError) console.warn("[youtube] analytics", client.id, analyticsError);
       return json(res, 200, { connected: true, ...rest, partial: !!analyticsError });
     } catch (e) {

@@ -77,5 +77,5 @@ export function accountsStrip(client) {
   if (!client.accounts?.length) return null;
   return h("div", { class: "accounts", "aria-label": "Contas conectadas a este relatório" },
     h("span", { class: "accounts__label" }, "Contas neste relatório:"),
-    client.accounts.map((a) => h("span", { class: "acc" }, netBadge(a.platform), h("b", {}, a.label), a.name ? h("span", {}, a.name) : null)));
+    client.accounts.map((a) => h("span", { class: `acc${a.hidden ? " acc--hidden" : ""}`, title: a.hidden ? "Oculta para o cliente: só a agência vê" : null }, netBadge(a.platform), h("b", {}, a.label), a.name ? h("span", {}, a.name) : null, a.hidden ? h("em", {}, "só agência") : null)));
 }

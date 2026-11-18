@@ -53,6 +53,17 @@ export function initConexoes({ state, api, toast, saveClient, openClient }) {
       toast("Lista de contas atualizada."); render();
     } catch (e) { toast(e.message); btn.disabled = false; }
   }
+  // Mostrar/ocultar uma conta para os clientes (a agência continua vendo)
+  async function setVisible(L, a, visible, input) {
+    input.disabled = true;
+    try {
+      if (!state.demo) { const r = await api("/api/admin/logins", { method: "POST", body: JSON.stringify({ action: "visibility", id: L.id, account: a.id, visible }) }); Object.assign(L, r.login); }
+      else a.visible = visible;
+      toast(visible ? `${a.name} visível para os clientes.` : `${a.name} oculta: só a agência vê.`);
+      render();
+    } catch (e) { toast(e.message); input.checked = !visible; input.disabled = false; }
+  }
+
   async function remove(L) {
     if (!confirm(`Remover o login “${L.label}”? Os clientes que usam contas dele param de receber esses números até você conectar de novo.`)) return;
     try {
@@ -110,11 +121,15 @@ export function initConexoes({ state, api, toast, saveClient, openClient }) {
           h("button", { type: "button", class: "icon-btn", title: "Remover login", "aria-label": "Remover login", onclick: () => remove(L) }, h("span", { html: '<svg viewBox="0 0 24 24"><path d="M5 7h14M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>' })))),
       L.error ? h("p", { class: "lcard__err" }, L.error) : null,
       (L.accounts || []).length
-        ? h("ul", { class: "acclist" }, L.accounts.map((a) => {
+        ? [h("div", { class: "acclist__head" }, h("span", {}, `${L.accounts.filter((a) => a.visible !== false).length} de ${L.accounts.length} visíveis para os clientes`), h("span", {}, "Visível")),
+          h("ul", { class: "acclist" }, L.accounts.map((a) => {
           const who = usedBy(a.id);
-          return h("li", {}, h("span", { class: `dot ${a.status === "Ativa" ? "is-on" : ""}`, title: a.status }), h("span", { class: "acclist__name" }, a.name), h("code", {}, a.id),
-            who.length ? h("span", { class: "tag tag--on" }, who.join(", ")) : h("span", { class: "tag" }, "sem cliente"));
-        }))
+          const vis = a.visible !== false;
+          return h("li", { class: vis ? "" : "is-hidden" }, h("span", { class: `dot ${a.status === "Ativa" ? "is-on" : ""}`, title: a.status }), h("span", { class: "acclist__name" }, a.name), h("code", {}, a.id),
+            !vis ? h("span", { class: "tag tag--admin" }, "só admin") : who.length ? h("span", { class: "tag tag--on" }, who.join(", ")) : h("span", { class: "tag" }, "sem cliente"),
+            h("label", { class: "switch", title: vis ? "Visível para o cliente" : "Oculta para o cliente" },
+              h("input", { type: "checkbox", checked: vis, "aria-label": `Mostrar ${a.name} para o cliente`, onchange: (e) => setVisible(L, a, e.target.checked, e.target) }), h("span", { "aria-hidden": "true" })));
+        }))]
         : !L.error ? h("p", { class: "muted" }, "Nenhuma conta de anúncio neste login.") : null,
       L.provider === "meta" && (L.pages || []).length ? h("p", { class: "lcard__pages" }, plural(L.pages.length, "página", "páginas"), " · ", plural(L.pages.filter((p) => p.instagram).length, "Instagram", "Instagrams")) : null);
   }
@@ -155,7 +170,7 @@ export function initConexoes({ state, api, toast, saveClient, openClient }) {
             if (e.target.checked) picked.set(key, { p: L.provider, login: L.id, id: a.id, name: a.name, loginCustomerId: a.loginCustomerId || "", currency: a.currency || "" });
             else picked.delete(key);
             upd();
-          } }), h("span", { class: "opt__box", "aria-hidden": "true" }), h("span", { class: "opt__txt" }, h("b", {}, a.name), h("small", {}, `${a.id}${a.business ? ` · ${a.business}` : ""}${a.status && a.status !== "Ativa" ? ` · ${a.status}` : ""}`)));
+          } }), h("span", { class: "opt__box", "aria-hidden": "true" }), h("span", { class: "opt__txt" }, h("b", {}, a.name), h("small", {}, `${a.id}${a.business ? ` · ${a.business}` : ""}${a.status && a.status !== "Ativa" ? ` · ${a.status}` : ""}`)), a.visible === false ? h("span", { class: "tag tag--admin" }, "só admin") : null);
         })),
         L.provider === "meta" && (L.pages || []).length ? h("div", { class: "pages" }, h("p", { class: "pages__t" }, "Página do Facebook e Instagram (posts e alcance orgânico)"),
           h("div", { class: "opts" }, [{ id: "", name: "Nenhuma" }, ...L.pages].filter((p) => !p.id || match(p)).map((p) => h("label", { class: "opt opt--radio" },

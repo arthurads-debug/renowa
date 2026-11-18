@@ -8,7 +8,7 @@ import { cached } from "../_lib/cache.js";
 import { fetchGoogleAds } from "../_lib/google-ads.js";
 import { fetchMetaAds, fetchMetaSummary } from "../_lib/meta-ads.js";
 import { readScriptData, scriptRows } from "../_lib/ads-script.js";
-import { adsOf } from "../_lib/ads-accounts.js";
+import { adsFor, adsOf } from "../_lib/ads-accounts.js";
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_DAYS = 400;
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     const days = (Date.parse(to) - Date.parse(from)) / 864e5;
     if (!(days >= 0 && days <= MAX_DAYS)) return json(res, 400, { error: `Período deve ter entre 1 e ${MAX_DAYS} dias.` });
 
-    const accounts = adsOf(client);
+    const accounts = await adsFor(client, session.by === "admin" ? "agency" : "client");
     const metaCfg = { ...(client.metaAds || {}), ...(client.metaConfig || {}) };
     const script = await readScriptData(client.id);
     const jobs = accounts.map((a) => {
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       const acc = { adAccountId: a.id, resultActionTypes: metaCfg.resultActionTypes, revenueActionTypes: metaCfg.revenueActionTypes };
       return cached(`m:${client.id}:${a.login}:${a.id}:${JSON.stringify(acc.resultActionTypes || [])}:${from}:${to}`, () => fetchMetaAds(acc, from, to, ref));
     });
-    if (!accounts.some((a) => a.p === "google") && script) jobs.push(Promise.resolve(scriptRows(script, from, to))), accounts.push({ p: "google", id: "script" });
+    if (!adsOf(client).some((a) => a.p === "google") && script) jobs.push(Promise.resolve(scriptRows(script, from, to))), accounts.push({ p: "google", id: "script" });
 
     const settled = await Promise.allSettled(jobs);
     const rows = [];

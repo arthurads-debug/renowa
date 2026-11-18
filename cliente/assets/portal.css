@@ -631,3 +631,6 @@ svg.is-anim .line { stroke-dasharray: var(--len); stroke-dashoffset: var(--len);
 @media (max-width: 860px) { .f3d__body { grid-template-columns: minmax(0, 1fr); } .f3d__stage { height: 280px; } }
 @media (prefers-reduced-motion: reduce) { .m-in, svg.is-anim .bar, svg.is-anim .line, .kpi.is-tick { animation: none !important; } .is-tilt { transform: none; } }
 @media print { .f3d { display: none; } }
+/* conta oculta para o cliente (aparece só quando a agência abre o relatório) */
+.acc--hidden { border-style: dashed; opacity: .75; }
+.acc--hidden em { font-style: normal; font-size: 11px; font-weight: 800; color: #B13A06; background: #FFF1EA; padding: 2px 6px; border-radius: 999px; }

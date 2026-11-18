@@ -23,7 +23,7 @@ export default async function handler(req, res) {
       return json(res, 200, {
         name: c.name,
         ready: { google: !!(a.google.clientId && a.google.clientSecret), meta: !!(a.meta.appId && a.meta.appSecret) },
-        logins: mine.map((L) => ({ id: L.id, provider: L.provider, label: L.label, accounts: (L.accounts || []).map(({ id, name, status }) => ({ id, name, status })), pages: (L.pages || []).map((p) => ({ id: p.id, name: p.name, instagram: p.instagram ? { id: p.instagram.id, username: p.instagram.username } : null })), error: L.error ? "Não consegui ler as contas deste login. Tente conectar de novo." : null })),
+        logins: mine.map((L) => ({ id: L.id, provider: L.provider, label: L.label, accounts: (L.accounts || []).filter((a) => !(L.hidden || []).includes(a.id)).map(({ id, name, status }) => ({ id, name, status })), pages: (L.pages || []).map((p) => ({ id: p.id, name: p.name, instagram: p.instagram ? { id: p.instagram.id, username: p.instagram.username } : null })), error: L.error ? "Não consegui ler as contas deste login. Tente conectar de novo." : null })),
         selected: adsOf(c).map((x) => `${x.p}:${x.id}`),
         page: c.facebook?.pageId || null,
       });
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       const chosen = [];
       for (const s of Array.isArray(body.ads) ? body.ads.slice(0, 30) : []) {
         const L = byId[s?.login];
-        const acc = L?.accounts?.find((x) => x.id === s.id);
+        const acc = L?.accounts?.find((x) => x.id === s.id && !(L.hidden || []).includes(x.id));
         if (acc) chosen.push({ p: L.provider, login: L.id, id: acc.id, name: acc.name, loginCustomerId: acc.loginCustomerId || "", currency: acc.currency || "" });
       }
       const mineIds = new Set(mine.map((L) => L.id));

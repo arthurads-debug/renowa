@@ -61,14 +61,14 @@ export function burn(password) {
 /* ---------- O que o navegador do cliente pode ver ---------- */
 const PROFILES = ["awareness", "leads", "sales"];
 
-export function connectedAccounts(c) {
-  const out = adsOf(c).map((a) => ({ platform: a.p, label: a.p === "google" ? "Google Ads" : "Meta Ads", name: a.name || "", id: a.id }));
+export function connectedAccounts(c, ads = adsOf(c)) {
+  const out = ads.map((a) => ({ platform: a.p, label: a.p === "google" ? "Google Ads" : "Meta Ads", name: a.name || "", id: a.id, ...(a.hidden ? { hidden: true } : {}) }));
   if (c.facebook?.pageId) out.push({ platform: "facebook", label: "Facebook", name: c.facebook.name || "", id: c.facebook.pageId });
   if (c.instagram?.userId) out.push({ platform: "instagram", label: "Instagram", name: c.instagram.username ? `@${c.instagram.username}` : "", id: c.instagram.userId });
   return out;
 }
 
-export function publicProfile(c, viewer = "client") {
+export function publicProfile(c, viewer = "client", ads = adsOf(c)) {
   const sheets = c.sheets || {};
   return {
     id: c.id,
@@ -78,8 +78,8 @@ export function publicProfile(c, viewer = "client") {
     resultLabel: c.resultLabel || (c.profile === "sales" ? "Vendas" : "Contatos"),
     currency: c.currency || "BRL",
     city: c.city?.population ? { name: c.city.name || "", population: Number(c.city.population) } : null,
-    platforms: { google: adsOf(c).some((a) => a.p === "google"), meta: adsOf(c).some((a) => a.p === "meta") },
-    accounts: connectedAccounts(c).map(({ platform, label, name }) => ({ platform, label, name })),
+    platforms: { google: ads.some((a) => a.p === "google"), meta: ads.some((a) => a.p === "meta") },
+    accounts: connectedAccounts(c, ads).map(({ platform, label, name, hidden }) => ({ platform, label, name, ...(hidden ? { hidden: true } : {}) })),
     has: {
       instagram: !!c.instagram?.userId,
       facebook: !!c.facebook?.pageId,

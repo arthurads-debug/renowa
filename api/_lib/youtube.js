@@ -98,7 +98,8 @@ export async function fetchYouTube(channel, from, to, prevFrom, prevTo) {
     ]);
     // pago x orgânico: visualizações vindas de anúncios (origem ADVERTISING), por dia e por vídeo
     const [paidDaily, paidPrev, videoSplit] = await Promise.all([
-      report(token, c.id, from, to, { metrics: "views,estimatedMinutesWatched", dimensions: "day", filters: "insightTrafficSourceType==ADVERTISING", sort: "day" }).catch(() => null),
+      report(token, c.id, from, to, { metrics: "views", dimensions: "day,insightTrafficSourceType", sort: "day" })
+        .then((rows) => rows.filter((r) => r.insightTrafficSourceType === "ADVERTISING")).catch(() => null),
       prevFrom ? report(token, c.id, prevFrom, prevTo, { metrics: "views", dimensions: "insightTrafficSourceType" }).catch(() => null) : Promise.resolve(null),
       Promise.all(top.map((r) => report(token, c.id, from, to, { metrics: "views", dimensions: "insightTrafficSourceType", filters: `video==${r.video}` })
         .then((rows) => sum(rows.filter((x) => x.insightTrafficSourceType === "ADVERTISING"), "views")).catch(() => null))),
@@ -114,9 +115,13 @@ export async function fetchYouTube(channel, from, to, prevFrom, prevTo) {
     out.analytics = true;
     out.current = tot(daily);
     out.previous = prevRows.length ? tot(prevRows) : null;
-    const paidByDay = Object.fromEntries((paidDaily || []).map((r) => [r.day, +r.views || 0]));
-    out.split = !!paidDaily;
-    out.current.paidViews = sum(paidDaily || [], "views");
+    // total pago do período: origem "Anúncios" no relatório de origem do tráfego
+    const paidTotal = sum(traffic.filter((r) => r.insightTrafficSourceType === "ADVERTISING"), "views");
+    const share = out.current.views ? paidTotal / out.current.views : 0;
+    // por dia: relatório dia × origem; se o YouTube não entregar, distribui na proporção do período
+    const paidByDay = paidDaily ? Object.fromEntries(paidDaily.map((r) => [r.day, +r.views || 0])) : Object.fromEntries(daily.map((r) => [r.day, Math.round((+r.views || 0) * share)]));
+    out.split = traffic.length > 0;
+    out.current.paidViews = paidTotal;
     if (out.previous && paidPrev) out.previous.paidViews = sum(paidPrev.filter((x) => x.insightTrafficSourceType === "ADVERTISING"), "views");
     out.daily = daily.map((r) => ({ date: r.day, paidViews: paidByDay[r.day] || 0, views: +r.views || 0, minutes: +r.estimatedMinutesWatched || 0, gained: +r.subscribersGained || 0, lost: +r.subscribersLost || 0, likes: +r.likes || 0, comments: +r.comments || 0, shares: +r.shares || 0 }));
     out.top = top.map((r, i) => ({ ...(details[r.video] || { id: r.video, title: "" }), views: +r.views || 0, paidViews: videoSplit[i] ?? null, minutes: +r.estimatedMinutesWatched || 0, avgDuration: +r.averageViewDuration || 0, avgPercent: +r.averageViewPercentage || 0, likes: +r.likes || 0, comments: +r.comments || 0, shares: +r.shares || 0, gained: +r.subscribersGained || 0 }));

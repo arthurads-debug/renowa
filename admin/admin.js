@@ -422,7 +422,7 @@ function cxCard(f, provider) {
   return h("article", { class: `cx__card${d.own ? " is-on" : ""}${d.test && !d.test.ok ? " is-bad" : ""}` },
     h("header", {}, netBadge(provider), h("strong", {}, title)),
     status,
-    msg ? h("p", { class: `cx__test ${msg.err ? "is-err" : "is-ok"}`, role: "status" }, msg.err || msg.ok) : null,
+    msg && (msg.err || msg.ok) ? h("p", { class: `cx__test ${msg.err ? "is-err" : "is-ok"}`, role: "status" }, msg.err || msg.ok) : null,
     test,
     provider === "google" && ready && !cx?.loading && (d.apiBlocked || d.script || (d.test && !d.test.ok)) ? scriptBox(f, d) : null,
     h("div", { class: "cx__btns" },

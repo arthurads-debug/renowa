@@ -5,6 +5,7 @@ import { getSession } from "../_lib/session.js";
 import { cached } from "../_lib/cache.js";
 import { fetchInstagram } from "../_lib/instagram.js";
 import { fetchFacebook } from "../_lib/facebook.js";
+import { proxied } from "./img.js";
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const TTL = 15 * 60_000;
@@ -33,6 +34,7 @@ export default async function handler(req, res) {
       }, TTL)),
       one("Facebook", !!client.facebook?.pageId, () => cached(`fb:${client.id}:${client.facebook.pageId}:${from}:${to}`, () => fetchFacebook(client.facebook, from, to, { c: client.id, login: client.facebook.login || "" }), TTL)),
     ]);
+    for (const d of [instagram, facebook]) for (const p of d.posts || []) p.thumbnail = proxied(p.thumbnail);
     return json(res, 200, { instagram, facebook });
   } catch (err) {
     return fail(res, err);

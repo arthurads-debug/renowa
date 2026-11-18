@@ -64,7 +64,7 @@
       ]
     },
     {
-      "source": "/api/(.*)",
+      "source": "/api/((?!img$).*)",
       "headers": [
         {
           "key": "Cache-Control",

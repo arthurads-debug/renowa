@@ -17,6 +17,9 @@ function secret() {
 }
 const mac = (body) => crypto.createHmac("sha256", secret()).update(body).digest("base64url");
 
+// Assinatura curta de um texto (ex.: endereço de imagem que o site pode buscar no lugar do navegador)
+export const macOf = (text) => mac(`img:${text}`).slice(0, 22);
+
 export function sign(payload) {
   const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${body}.${mac(body)}`;

@@ -13,6 +13,7 @@ import posts from "./_routes/posts.js";
 import connect from "./_routes/connect.js";
 import ingest from "./_routes/ingest.js";
 import youtube from "./_routes/youtube.js";
+import img from "./_routes/img.js";
 import { metaOAuth, googleOAuth } from "./_routes/oauth.js";
 import adminIntegrations from "./_routes/admin/integrations.js";
 import adminPosts from "./_routes/admin/posts.js";
@@ -25,7 +26,7 @@ import adminLogin from "./_routes/admin/login.js";
 import adminMe from "./_routes/admin/me.js";
 
 const ROUTES = {
-  content, lead, login, logout, me, metrics, social, signup, posts, connect, ingest, youtube,
+  content, lead, login, logout, me, metrics, social, signup, posts, connect, ingest, youtube, img,
   "oauth/meta": metaOAuth,
   "oauth/google": googleOAuth,
   "admin/integrations": adminIntegrations,

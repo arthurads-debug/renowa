@@ -294,6 +294,45 @@ function setLive(ok, message) {
 $("#btn-refresh").addEventListener("click", () => refreshAll());
 $("#btn-print").addEventListener("click", printReport);
 
+/* ---------- Relatório: nada cortado entre páginas, em qualquer navegador ----------
+   O relatório é montado na largura da folha A4 (718 px). Cada bloco que cabe numa página vira uma peça única
+   (inline-block): nenhum navegador — nem o Safari do iPhone — parte uma peça dessas ao meio; se não couber no fim
+   da página, ela vai inteira para a próxima. Blocos maiores que uma página são abertos e os filhos viram peças. */
+const PAGE_PX = 900; // altura útil de uma página A4 com margem de segurança
+const INLINE = { block: "inline-block", grid: "inline-grid", flex: "inline-flex", table: "inline-table", "list-item": "inline-block", "flow-root": "inline-block" };
+function lockBlocks(root) {
+  const lock = (el) => {
+    const d = getComputedStyle(el).display;
+    if (!INLINE[d]) return;
+    el.style.display = INLINE[d];
+    el.style.width = "100%";
+    el.style.verticalAlign = "top";
+    el.style.boxSizing = "border-box";
+  };
+  const walk = (parent) => {
+    for (const el of [...parent.children]) {
+      const cs = getComputedStyle(el);
+      if (cs.display === "none" || cs.display.startsWith("inline")) continue;
+      if (el.getBoundingClientRect().height <= PAGE_PX) lock(el);
+      else walk(el);
+    }
+  };
+  root.querySelectorAll(".pr-sec").forEach((sec) => {
+    // o título da seção vai junto com o primeiro bloco (nunca sozinho no pé da página)
+    const title = sec.querySelector(".pr-sec__title"), body = sec.querySelector(".pr-sec__body");
+    const first = body?.firstElementChild;
+    if (title && first && first.getBoundingClientRect().height + title.getBoundingClientRect().height <= PAGE_PX) {
+      const pair = h("div", { class: "pr-pair" });
+      sec.insertBefore(pair, title);
+      pair.append(title, first);
+      body.prepend(pair);
+    }
+    walk(body || sec);
+  });
+  const head = root.querySelector(".pr-head");
+  if (head) lock(head);
+}
+
 /* ---------- Relatório para baixar (PDF): todas as seções do período num documento só ---------- */
 function printReport() {
   const c = state.client;
@@ -337,6 +376,7 @@ function printReport() {
   toast("Preparando o relatório…");
   Promise.race([loaded, timeout]).then(() => setTimeout(() => {
     box.querySelectorAll(".mix__bar span, .mix__cmp i, .yt-bars span, .yt-age__bar span, .yt-ret i").forEach((el) => el.classList.add("is-in"));
+    lockBlocks(box);
     window.print();
   }, 300));
 }
@@ -558,6 +598,8 @@ async function boot() {
       state.client = saved; showApp();
       if (quick && qs.get("relatorio")) {
         window.print = () => {};
+        // &semquebra=1 simula navegadores que ignoram as regras de quebra de página (como o Safari do iPhone)
+        if (qs.get("semquebra")) document.head.append(h("style", {}, "*{break-inside:auto!important;page-break-inside:auto!important;break-after:auto!important;page-break-after:auto!important}"));
         const wait = setInterval(() => { if (state.metrics && state.social && state.youtube) { clearInterval(wait); printReport(); } }, 200);
       }
     } else showLogin();

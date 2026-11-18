@@ -47,15 +47,26 @@ export function scriptTotals(data, days = 30) {
   return scriptRows(data, from, to).reduce((t, r) => ({ spend: t.spend + r.spend, impressions: t.impressions + r.impressions, clicks: t.clicks + r.clicks, results: t.results + r.results }), { spend: 0, impressions: 0, clicks: 0, results: 0 });
 }
 
-// O script que a agência cola no Google Ads (Ferramentas → Ações em massa → Scripts)
+// Último envio (ok ou erro) — para o painel dizer o que aconteceu
+const STATUS = (clientId) => `renowa:gads:${clientId}:status`;
+export const saveScriptStatus = (clientId, st) => kvSetJSON(STATUS(clientId), { ...st, at: new Date().toISOString() });
+export const readScriptStatus = (clientId) => kvGetJSON(STATUS(clientId)).catch(() => null);
+
+// O script que a agência cola no Google Ads (Ferramentas → Ações em massa → Scripts).
+// Funciona colado na conta do cliente OU na conta de administrador (MCC): na MCC, lê as contas abaixo dela.
 export function scriptSource(url, clientName) {
   return `// Renowa — envia os resultados de "${clientName}" para o painel da agência.
 // Cole em: Google Ads → Ferramentas → Ações em massa → Scripts → + → Novo script.
-// Depois: Autorizar → Executar → e em Frequência escolha "De hora em hora".
-// Este script só LÊ os números. Não altera nenhuma campanha.
+// Depois: Autorizar → Salvar → Executar. Na lista de scripts, Frequência: "De hora em hora".
+// Funciona na conta do cliente ou na conta de administrador (MCC). Só LÊ os números.
 var PAINEL = '${url}';
 
-function main() {
+function enviar(dados) {
+  var resp = UrlFetchApp.fetch(PAINEL, { method: 'post', contentType: 'application/json', muteHttpExceptions: true, payload: JSON.stringify(dados) });
+  Logger.log('Resposta do painel: ' + resp.getResponseCode() + ' ' + resp.getContentText());
+}
+
+function coletar() {
   var conta = AdsApp.currentAccount();
   var fuso = conta.getTimeZone();
   var hoje = new Date();
@@ -73,11 +84,35 @@ function main() {
       Number(m.costMicros || 0) / 1e6, Number(m.impressions || 0), Number(m.clicks || 0),
       Number(m.conversions || 0), Number(m.conversionsValue || 0), Number(m.engagements || 0)]);
   }
-  var resp = UrlFetchApp.fetch(PAINEL, {
-    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
-    payload: JSON.stringify({ account: { id: conta.getCustomerId(), name: conta.getName(), currency: conta.getCurrencyCode() }, rows: linhas })
-  });
-  Logger.log('Renowa: ' + linhas.length + ' linhas enviadas. Resposta do painel: ' + resp.getResponseCode() + ' ' + resp.getContentText());
+  return linhas;
+}
+
+function main() {
+  var principal = AdsApp.currentAccount();
+  var dados = { account: { id: principal.getCustomerId(), name: principal.getName(), currency: principal.getCurrencyCode() }, rows: [], contas: [] };
+  try {
+    if (typeof AdsManagerApp !== 'undefined') {
+      // conta de administrador (MCC): junta as contas de anúncio abaixo dela
+      var contas = AdsManagerApp.accounts().get();
+      while (contas.hasNext()) {
+        var c = contas.next();
+        AdsManagerApp.select(c);
+        try {
+          var l = coletar();
+          dados.rows = dados.rows.concat(l);
+          dados.contas.push(c.getName() + ' (' + c.getCustomerId() + '): ' + l.length);
+          if (l.length && dados.account.id === principal.getCustomerId()) dados.account = { id: c.getCustomerId(), name: c.getName(), currency: c.getCurrencyCode() };
+        } catch (e) { dados.contas.push(c.getCustomerId() + ': ' + e); }
+      }
+      AdsManagerApp.select(principal);
+    } else {
+      dados.rows = coletar();
+    }
+  } catch (e) {
+    dados.error = String(e);
+  }
+  Logger.log('Renowa: ' + dados.rows.length + ' linhas. ' + dados.contas.join(' | ') + (dados.error ? ' ERRO: ' + dados.error : ''));
+  enviar(dados);
 }
 `;
 }

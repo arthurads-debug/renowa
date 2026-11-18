@@ -395,6 +395,8 @@ function scriptBox(f, d) {
   const when = sc?.updatedAt ? new Date(sc.updatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
   return h("details", { class: "cx__script", open: (d.apiBlocked && !sc) || undefined },
     h("summary", {}, sc ? `✓ Script do Google Ads ativo · último envio ${when}` : d.apiBlocked ? "Ver os números agora, sem esperar o Google (2 minutos)" : "Alternativa: ligar pelo script do Google Ads"),
+    d.scriptStatus && !d.scriptStatus.ok ? h("p", { class: "cx__test is-err" }, h("strong", {}, `O script rodou em ${new Date(d.scriptStatus.at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}, mas não trouxe números: `), d.scriptStatus.error,
+      d.scriptStatus.account?.name ? ` (conta: ${d.scriptStatus.account.name})` : "", d.scriptStatus.detail?.length ? h("small", { style: { display: "block", marginTop: "4px" } }, d.scriptStatus.detail.join(" · ")) : null) : null,
     d.apiBlocked && !sc ? h("p", { class: "cx__why" }, "O Google ainda não liberou o token da agência para contas reais. Enquanto isso, este script, colado uma vez na conta do cliente, manda os números para o painel a cada hora.") : null,
     h("ol", { class: "cx__steps" },
       h("li", {}, h("span", {}, h("button", { type: "button", class: "btn btn--primary btn--sm", onclick: (e) => copyScript(f, e.currentTarget) }, "Copiar script"))),

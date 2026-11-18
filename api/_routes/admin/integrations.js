@@ -12,7 +12,7 @@ import { storeEnabled } from "../../_lib/store.js";
 import { listGoogleAccounts, googleSnapshot, explainGoogleError } from "../../_lib/google-ads.js";
 import { listMetaAdAccounts, listPages, graphGet } from "../../_lib/meta-ads.js";
 import { redirectUri, makeInvite } from "../oauth.js";
-import { ingestKey, readScriptData, scriptTotals, scriptSource } from "../../_lib/ads-script.js";
+import { ingestKey, readScriptData, readScriptStatus, scriptTotals, scriptSource } from "../../_lib/ads-script.js";
 
 const mask = (v) => (v ? `••••${String(v).slice(-4)}` : "");
 
@@ -45,6 +45,8 @@ async function clientStatus(c) {
   const fmt = (t) => `Últimos 30 dias: ${brl(t.spend)} investidos · ${n(t.impressions)} impressões · ${n(t.clicks)} cliques${t.results ? ` · ${n(t.results)} conversões` : ""}`;
   const script = await readScriptData(c.id);
   if (script) out.google.script = { updatedAt: script.updatedAt, account: script.account, rows: script.rows.length };
+  const sst = await readScriptStatus(c.id);
+  if (sst) out.google.scriptStatus = sst;
   if (c.googleAds?.customerId) jobs.push(googleSnapshot(c.googleAds, c.id)
     .then((t) => { out.google.test = { ok: true, text: fmt(t) }; })
     .catch((e) => {

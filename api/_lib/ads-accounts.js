@@ -51,5 +51,6 @@ export const publicLogin = (L, explain) => ({
   id: L.id, provider: L.provider, label: L.label || "", connectedAt: L.connectedAt, by: L.by || "agencia", clientId: L.clientId || null,
   accounts: (L.accounts || []).map((a) => ({ ...a, visible: !(L.hidden || []).includes(a.id) })), pages: L.pages || [], checkedAt: L.checkedAt || null,
   error: L.error ? (explain ? explain(L.error) : L.error) : null,
+  errorDetail: L.error ? String(L.error).replace(/access_token=[^&\s"]+/g, "access_token=…").slice(0, 400) : null, // só aparece no painel da agência
   expiresAt: L.expiresAt || null, analytics: L.provider === "youtube" ? L.analytics !== false : undefined,
 });

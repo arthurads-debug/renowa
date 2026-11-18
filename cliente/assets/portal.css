@@ -1053,3 +1053,7 @@ body.printing #print-report { width: 718px; max-width: none; padding-left: 0; pa
 /* quadros Google Ads / Meta Ads: duas colunas para os valores não quebrarem no meio */
 #print-report .pf dl { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 #print-report .pf dd, #print-report .kpi__value, #print-report .chan dd, #print-report .net-card dd { white-space: nowrap; }
+/* quadros "Pelos anúncios" e "Pelo conteúdo orgânico": cor sólida e borda (o degradê sumia na borda e parecia cortado) */
+.mix__big { border: 1.5px solid transparent; }
+.mix__big--paid { background: #EEEDFF !important; border-color: #D2CEFF; }
+.mix__big--org { background: #FFF1EA !important; border-color: #FFCDB4; }

@@ -4,6 +4,7 @@
 import { getLogin, getLogins, saveLogin } from "./connections.js";
 import { listGoogleAccounts } from "./google-ads.js";
 import { listMetaAdAccounts, listPages } from "./meta-ads.js";
+import { listChannels } from "./youtube.js";
 
 export function adsOf(c) {
   if (Array.isArray(c?.ads) && c.ads.length) return c.ads;
@@ -27,7 +28,9 @@ export async function discover(loginId) {
   if (!L) throw Object.assign(new Error("Login não encontrado."), { status: 404, expose: true });
   const ref = { login: L.id };
   try {
-    if (L.provider === "google") {
+    if (L.provider === "youtube") {
+      L.accounts = await listChannels(L.id);
+    } else if (L.provider === "google") {
       L.accounts = (await listGoogleAccounts(ref)).map((a) => ({ id: a.id, name: a.name, status: a.status, currency: a.currency, loginCustomerId: a.loginCustomerId || "" }));
     } else {
       const [ads, pages] = await Promise.all([listMetaAdAccounts(ref), listPages(ref)]);
@@ -48,5 +51,5 @@ export const publicLogin = (L, explain) => ({
   id: L.id, provider: L.provider, label: L.label || "", connectedAt: L.connectedAt, by: L.by || "agencia", clientId: L.clientId || null,
   accounts: (L.accounts || []).map((a) => ({ ...a, visible: !(L.hidden || []).includes(a.id) })), pages: L.pages || [], checkedAt: L.checkedAt || null,
   error: L.error ? (explain ? explain(L.error) : L.error) : null,
-  expiresAt: L.expiresAt || null,
+  expiresAt: L.expiresAt || null, analytics: L.provider === "youtube" ? L.analytics !== false : undefined,
 });

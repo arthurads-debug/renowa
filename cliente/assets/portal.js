@@ -7,6 +7,7 @@ import { countUp, enter, tilt } from "./motion.js";
 import { renderOverview } from "./views/overview.js";
 import { renderAds } from "./views/ads.js";
 import { renderSocial } from "./views/social.js";
+import { renderYouTube } from "./views/youtube.js";
 import { renderCalendar } from "./views/calendar.js";
 import { renderHistory } from "./views/history.js";
 
@@ -46,6 +47,7 @@ const ROUTES = {
   resumo: { label: "Resumo", icon: "home", period: true, render: renderOverview, title: (c) => c.name, kicker: "Visão geral" },
   anuncios: { label: "Anúncios", icon: "ads", period: true, render: renderAds, title: () => "Anúncios", kicker: "Tráfego pago · Google e Meta", show: (c) => c.platforms.google || c.platforms.meta },
   social: { label: "Social media", icon: "social", period: true, render: renderSocial, title: () => "Social media", kicker: "Instagram e Facebook · conteúdo orgânico", show: (c) => c.has.instagram || c.has.facebook || c.has.calendar },
+  youtube: { label: "YouTube", icon: "youtube", period: true, render: renderYouTube, title: () => "YouTube", kicker: "Canal · vídeos, audiência e crescimento", show: (c) => c.has.youtube },
   calendario: { label: "Calendário", icon: "calendar", period: false, render: renderCalendar, title: () => "Calendário editorial", kicker: "O que vamos publicar", show: (c) => c.has.calendar },
   historico: { label: "Histórico", icon: "history", period: false, render: renderHistory, title: () => "Histórico", kicker: "Últimos 12 meses" },
 };
@@ -186,6 +188,10 @@ async function guard(fn) {
 function loadPeriod() {
   return guard(async () => {
     const { from, to, prevFrom } = state;
+    const ytFrom = from;
+    state.source.youtube?.(from, to, state.prevFrom, state.prevTo)
+      .then((y) => { if (ytFrom === state.from) { state.youtube = y; if (state.route === "youtube") render(); } })
+      .catch(() => { state.youtube = { connected: true, error: "Não foi possível consultar o YouTube agora." }; if (state.route === "youtube") render(); });
     const [m, s] = await Promise.all([
       state.source.metrics(prevFrom, to, from),
       state.source.social(from, to).catch(() => ({ instagram: { connected: true, error: "Instagram indisponível agora.", posts: [] }, facebook: { connected: false } })),
@@ -291,7 +297,7 @@ function showApp() {
   const c = state.client;
   setCurrency(c.currency);
   state.source = createSource(state.demo, c);
-  state.metrics = state.social = state.content = state.history = null;
+  state.metrics = state.social = state.content = state.history = state.youtube = null;
 
   $("#view-login").hidden = true;
   $("#view-app").hidden = false;

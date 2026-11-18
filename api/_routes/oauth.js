@@ -8,6 +8,7 @@ import { findAdmin } from "../_lib/admin.js";
 import { findById } from "../_lib/clients.js";
 import { apps, getLogins, saveLogin, removeLogin } from "../_lib/connections.js";
 import { discover } from "../_lib/ads-accounts.js";
+import { YT_SCOPES } from "../_lib/youtube.js";
 
 const META_V = () => process.env.META_API_VERSION || "v21.0";
 const META_SCOPES = ["ads_read", "business_management", "pages_show_list", "pages_read_engagement", "read_insights", "instagram_basic", "instagram_manage_insights"];
@@ -61,10 +62,12 @@ export function makeHandler(provider) {
         if (provider === "meta" && (!a.appId || !a.appSecret)) return back(res, provider, ctx, { err: "A conexão com o Facebook ainda não foi ativada pela agência (Conexões → Ativar Facebook)." });
         if (provider === "google" && (!a.clientId || !a.clientSecret)) return back(res, provider, ctx, { err: "A conexão com o Google ainda não foi ativada pela agência." });
         const nonce = crypto.randomBytes(16).toString("base64url");
-        const state = sign({ p: provider, n: nonce, c: clientId, i: ctx.invite, exp: Date.now() + 15 * 60_000 });
+        // ?tipo=youtube: mesmo app do Google, com as permissões do YouTube (canal + estatísticas)
+        const yt = provider === "google" && q.get("tipo") === "youtube";
+        const state = sign({ p: provider, n: nonce, c: clientId, i: ctx.invite, y: yt ? 1 : 0, exp: Date.now() + 15 * 60_000 });
         res.setHeader("Set-Cookie", stateCookie(nonce, 900));
         if (provider === "meta") return go(res, `https://www.facebook.com/${META_V()}/dialog/oauth?${new URLSearchParams({ client_id: a.appId, redirect_uri: ru, state, response_type: "code", scope: META_SCOPES.join(","), auth_type: "rerequest" })}`);
-        return go(res, `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({ client_id: a.clientId, redirect_uri: ru, state, response_type: "code", scope: GOOGLE_SCOPES.join(" "), access_type: "offline", prompt: "select_account consent" })}`);
+        return go(res, `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({ client_id: a.clientId, redirect_uri: ru, state, response_type: "code", scope: (yt ? YT_SCOPES : GOOGLE_SCOPES).join(" "), access_type: "offline", prompt: "select_account consent" })}`);
       }
 
       // ---------- Volta ----------
@@ -101,12 +104,22 @@ export function makeHandler(provider) {
         });
         const tok = await r.json();
         if (!r.ok || !tok.refresh_token) throw new Error(`troca do código: ${JSON.stringify(tok.error || "sem refresh_token")}`);
-        if (!String(tok.scope || "").includes("auth/adwords")) return back(res, provider, ctx, { err: "O Google não liberou o acesso ao Google Ads. Clique em Conectar de novo e deixe a permissão do Google Ads aceita." });
-        login = { ...base, refreshToken: tok.refresh_token, label: "Google Ads" };
+        if (st.y) {
+          if (!String(tok.scope || "").includes("youtube.readonly")) return back(res, provider, ctx, { err: "O Google não liberou o acesso ao YouTube. Clique em Conectar YouTube de novo e marque as caixas do YouTube na tela de permissões." });
+          login = { ...base, provider: "youtube", refreshToken: tok.refresh_token, label: "YouTube", analytics: String(tok.scope).includes("yt-analytics") };
+        } else if (!String(tok.scope || "").includes("auth/adwords")) return back(res, provider, ctx, { err: "O Google não liberou o acesso ao Google Ads. Clique em Conectar de novo e deixe a permissão do Google Ads aceita." });
+        else login = { ...base, refreshToken: tok.refresh_token, label: "Google Ads" };
       }
 
       await saveLogin(login);
       const L = await discover(login.id);
+      if (L.provider === "youtube") {
+        L.label = L.accounts?.length ? L.accounts.map((c) => c.name).join(", ") : "YouTube";
+        const dup = Object.values(await getLogins()).find((o) => o.id !== L.id && o.provider === "youtube" && sameSet((L.accounts || []).map((x) => x.id), (o.accounts || []).map((x) => x.id)));
+        if (dup) { await saveLogin({ ...dup, refreshToken: L.refreshToken, analytics: L.analytics, accounts: L.accounts, error: L.error, checkedAt: L.checkedAt, connectedAt: L.connectedAt, label: L.label }); await removeLogin(L.id); return back(res, "youtube", ctx, { login: dup.id }); }
+        await saveLogin(L);
+        return back(res, "youtube", ctx, { login: L.id });
+      }
       if (provider === "google") {
         // mesmo login do Google conectado de novo (mesmas contas): fica um só
         const ids = (L.accounts || []).map((x) => x.id);

@@ -376,7 +376,7 @@ function accountsBox(f) {
     h("div", { class: "cx__invite" },
       h("p", {}, h("b", {}, "Quer que o cliente conecte?"), " Mande um link: ele faz login no Google/Facebook dele e marca as contas. Sem senha nova."),
       h("button", { type: "button", class: "btn btn--ghost btn--sm", onclick: (e) => sendInvite(f, e.currentTarget) }, "Enviar link pelo WhatsApp")),
-    f.facebook?.pageId || f.instagram?.userId ? h("p", { class: "ed__hint" }, "Orgânico: ", [f.facebook?.name && `Facebook ${f.facebook.name}`, f.instagram?.username && `Instagram @${f.instagram.username}`].filter(Boolean).join(" · ")) : null);
+    f.facebook?.pageId || f.instagram?.userId || f.youtube?.channelId ? h("p", { class: "ed__hint" }, "Orgânico: ", [f.facebook?.name && `Facebook ${f.facebook.name}`, f.instagram?.username && `Instagram @${f.instagram.username}`, f.youtube?.name && `YouTube ${f.youtube.name}`].filter(Boolean).join(" · ")) : null);
 }
 
 // Salva só as contas (ou outro trecho) de um cliente, sem abrir o editor
@@ -389,7 +389,7 @@ async function saveClient(c, patch) {
     city: m.profile === "awareness" ? m.city : undefined,
     ads: Array.isArray(m.ads) ? m.ads : legacy(m),
     metaAds: { resultActionTypes: m.metaConfig?.resultActionTypes || m.metaAds?.resultActionTypes || [] },
-    facebook: m.facebook || undefined, instagram: m.instagram || undefined,
+    facebook: m.facebook || undefined, instagram: m.instagram || undefined, youtube: m.youtube || undefined,
     sheets: m.sheets, salesFormUrl: m.profile === "leads" ? m.salesFormUrl : undefined,
   });
   toast(`Contas de ${m.name} salvas. Testando os números…`);
@@ -491,7 +491,7 @@ async function save(btn, err) {
     name: f.name, contactName: f.contactName, email: f.email, password: f.password || undefined,
     profile: f.profile, resultLabel: f.resultLabel, note: f.note, active: f.active !== false,
     city: f.profile === "awareness" ? f.city : undefined,
-    ads: adsOfForm(f), metaAds: { resultActionTypes: f.metaConfig?.resultActionTypes || f.metaAds?.resultActionTypes || [] }, facebook: f.facebook || undefined, instagram: f.instagram || undefined,
+    ads: adsOfForm(f), metaAds: { resultActionTypes: f.metaConfig?.resultActionTypes || f.metaAds?.resultActionTypes || [] }, facebook: f.facebook || undefined, instagram: f.instagram || undefined, youtube: f.youtube || undefined,
     sheets: f.sheets, salesFormUrl: f.profile === "leads" ? f.salesFormUrl : undefined,
   };
   btn.disabled = true;

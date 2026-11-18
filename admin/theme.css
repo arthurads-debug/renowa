@@ -305,3 +305,14 @@ body { background: var(--bg); }
 .opt .tag { margin-left: auto; }
 .login--admin .login__r { display: none; }
 @media (max-width: 900px) { .login__3d { inset: 0 -6% 0 48%; opacity: .9; } }
+
+/* YouTube */
+.plogo--youtube { background: #FF0033; }
+.plogo--youtube svg { width: 70%; height: 70%; }
+.btn--yt { background: #0F0F0F; color: #fff; }
+.btn--yt:hover { background: #272727; }
+.btn--yt .plogo--youtube { background: #FF0033; }
+.ptile--youtube .ptile__glow { background: radial-gradient(circle, rgba(255, 0, 51, .3), transparent 65%); }
+.ptiles--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 1180px) { .ptiles--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 960px) { .ptiles--3 { grid-template-columns: minmax(0, 1fr); } }

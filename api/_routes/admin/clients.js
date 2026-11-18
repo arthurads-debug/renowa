@@ -71,6 +71,8 @@ function clean(input, existing) {
   }
   const f = input.facebook || {};
   if (str(f.pageId)) c.facebook = { pageId: str(f.pageId, 40).replace(/\D/g, ""), name: str(f.name, 120), login: str(f.login, 40) };
+  const yt = input.youtube || {};
+  if (str(yt.channelId)) c.youtube = { channelId: str(yt.channelId, 40).replace(/[^\w-]/g, ""), name: str(yt.name, 120), login: str(yt.login, 40) };
   const ig = input.instagram || {};
   if (str(ig.userId)) c.instagram = { userId: str(ig.userId, 40).replace(/\D/g, ""), username: str(ig.username, 60).replace(/^@/, ""), login: str(ig.login, 40) };
 

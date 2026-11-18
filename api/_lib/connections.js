@@ -7,11 +7,11 @@ const KEYS = { meta: "renowa:conn:meta", google: "renowa:conn:google", apps: "re
 const memo = new Map(); // cache curto por instância
 const TTL = 30_000;
 
-async function read(key) {
-  const hit = memo.get(key);
+async function read(key, ttl = TTL) {
+  const hit = ttl ? memo.get(key) : null;
   if (hit && hit.exp > Date.now()) return hit.value;
   const value = storeEnabled() ? await kvGetJSON(key).catch(() => null) : null;
-  memo.set(key, { value, exp: Date.now() + TTL });
+  memo.set(key, { value, exp: Date.now() + ttl });
   return value;
 }
 async function write(key, value) {
@@ -27,6 +27,18 @@ export const setClientConn = (provider, clientId, value) => write(ckey(provider,
 export const delClientConn = (provider, clientId) => write(ckey(provider, clientId), null);
 export const setConn = (provider, value) => write(KEYS[provider], value);
 export const delConn = (provider) => write(KEYS[provider], null);
+
+/* ---------- Logins conectados (estilo UTMify) ----------
+   Cada "Conectar Google/Facebook" vira um login com a lista de contas que ele enxerga.
+   Os clientes escolhem uma ou várias dessas contas. Guardado num único registro (poucos logins). */
+const LOGINS = "renowa:logins";
+export const getLogins = async () => (await read(LOGINS, 0)) || {};
+export const getLogin = async (id) => (id ? (await getLogins())[id] || null : null);
+export async function saveLogin(login) { const all = { ...(await getLogins()) }; all[login.id] = login; await write(LOGINS, all); return login; }
+export async function removeLogin(id) { const all = { ...(await getLogins()) }; delete all[id]; await write(LOGINS, all); }
+
+// ref: id do cliente (texto) ou { c: cliente, login: id do login }
+const refOf = (ref) => (ref && typeof ref === "object" ? ref : { c: ref });
 
 // Credenciais dos apps (Meta App e Google OAuth) — env tem prioridade
 export async function apps() {
@@ -61,7 +73,13 @@ export async function saveApps(provider, fields) {
 }
 
 // Token e segredo da Meta: Usuário do Sistema (env) ou o login feito no painel
-export async function metaAuth(clientId) {
+export async function metaAuth(ref) {
+  const { c: clientId, login } = refOf(ref);
+  if (login) {
+    const L = await getLogin(login);
+    if (!L?.accessToken) throw Object.assign(new Error("Facebook não conectado — conecte de novo em Conexões."), { status: 503 });
+    return { token: L.accessToken, secret: (await apps()).meta.appSecret, source: "login" };
+  }
   const own = await getClientConn("meta", clientId);
   if (own?.accessToken) return { token: own.accessToken, secret: (await apps()).meta.appSecret, source: "client" };
   if (process.env.META_ACCESS_TOKEN) return { token: process.env.META_ACCESS_TOKEN, secret: process.env.META_APP_SECRET || "", source: "env" };
@@ -72,13 +90,19 @@ export async function metaAuth(clientId) {
 }
 
 // Refresh token do Google: env ou o login feito no painel
-export async function googleAuth(clientId) {
+export async function googleAuth(ref) {
+  const { c: clientId, login } = refOf(ref);
   const a = (await apps()).google;
+  if (login) {
+    if (!a.clientId || !a.clientSecret) throw Object.assign(new Error("Variável GOOGLE_ADS_CLIENT_ID não configurada"), { status: 503 });
+    const L = await getLogin(login);
+    if (!L?.refreshToken) throw Object.assign(new Error("Google não conectado — conecte de novo em Conexões."), { status: 503 });
+    return { ...a, refreshToken: L.refreshToken, source: "login", loginCustomerId: "" };
+  }
   const own = await getClientConn("google", clientId);
   const refreshToken = own?.refreshToken || process.env.GOOGLE_ADS_REFRESH_TOKEN || (await getConn("google"))?.refreshToken || "";
   const miss = (n) => Object.assign(new Error(`Variável ${n} não configurada`), { status: 503 });
   if (!a.clientId || !a.clientSecret) throw miss("GOOGLE_ADS_CLIENT_ID");
-  if (!a.developerToken) throw miss("GOOGLE_ADS_DEVELOPER_TOKEN");
   if (!refreshToken) throw Object.assign(new Error("Google não conectado — conecte em Integrações no painel da agência (variável GOOGLE_ADS_REFRESH_TOKEN não configurada)"), { status: 503 });
   // login próprio do cliente: a MCC da agência não se aplica (cada conta diz por qual gerente é acessada)
   return { ...a, refreshToken, source: own?.refreshToken ? "client" : "agency", loginCustomerId: own?.refreshToken ? "" : a.loginCustomerId };

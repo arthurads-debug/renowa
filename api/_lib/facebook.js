@@ -7,11 +7,12 @@ const pageTokens = new Map();
 
 // Métricas de página exigem o token da própria página, obtido com o token do sistema
 async function pageToken(pageId, clientId) {
-  const hit = pageTokens.get(`${clientId}:${pageId}`);
+  const key = `${JSON.stringify(clientId)}:${pageId}`;
+  const hit = pageTokens.get(key);
   if (hit && hit.exp > Date.now()) return hit.token;
   const data = await graphGet(pageId, new URLSearchParams({ fields: "access_token" }), undefined, clientId);
   if (!data?.access_token) throw new Error("Sem acesso à página (atribua a página ao Usuário do Sistema).");
-  pageTokens.set(`${clientId}:${pageId}`, { token: data.access_token, exp: Date.now() + 50 * 60_000 });
+  pageTokens.set(key, { token: data.access_token, exp: Date.now() + 50 * 60_000 });
   return data.access_token;
 }
 

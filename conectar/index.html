@@ -42,6 +42,12 @@
     .msg { padding: 12px 14px; border-radius: 14px; font-size: .95rem; }
     .msg--ok { background: rgba(47,210,124,.12); color: #BFF5D8; border: 1px solid rgba(47,210,124,.35); }
     .msg--err { background: rgba(255,107,91,.12); color: #FFD2CC; border: 1px solid rgba(255,107,91,.35); }
+    .pick { display: grid; gap: 10px; }
+    .pick h3 { font-size: .95rem; font-weight: 800; }
+    .opt { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,.04); border: 1px solid var(--line); cursor: pointer; }
+    .opt input { width: 20px; height: 20px; accent-color: #5B52FF; flex: none; }
+    .opt span { display: grid; min-width: 0; } .opt small { color: var(--ink-2); font-size: .8rem; }
+    .opt:has(input:checked) { border-color: #5B52FF; background: rgba(91,82,255,.14); }
     .done { text-align: center; padding: 22px; border-radius: 20px; background: linear-gradient(135deg, rgba(30,18,234,.35), rgba(30,18,234,.1)); border: 1px solid rgba(91,82,255,.45); }
     .done strong { display: block; font-size: 1.25rem; margin-bottom: 4px; }
     footer { font-size: .8rem; color: rgba(244,245,248,.45); text-align: center; }
@@ -76,6 +82,12 @@
       <a class="btn" id="go-meta" href="#">Conectar Facebook</a>
     </section>
 
+    <section class="card" id="choose" hidden>
+      <header><div><h2>Quais contas mostrar no painel?</h2><p class="sub">Marque uma ou várias. Dá para mudar depois.</p></div></header>
+      <div class="pick" id="pick"></div>
+      <button class="btn" id="save" type="button">Salvar escolha</button>
+    </section>
+
     <ul class="tips" id="tips" hidden>
       <li><span>Na tela do Google ou do Facebook, é só clicar em <b>Continuar</b>. A Renowa só <b>lê</b> os números; não altera nem cria anúncios.</span></li>
       <li><span>Se o Google mostrar <b>“O Google não verificou este app”</b>, clique em <b>Avançado</b> e depois em <b>Acessar</b>.</span></li>
@@ -89,9 +101,9 @@
     const t = q.get("t") || "";
     const msg = (text, ok) => { const m = $("#msg"); m.textContent = text; m.className = `msg msg--${ok ? "ok" : "err"}`; m.hidden = false; };
     if (q.get("erro")) msg(q.get("erro"), false);
-    else if (q.get("ok")) msg(q.get("ok") === "1" ? "Conectado!" : `Conectado! ${q.get("ok")}`, true);
+    else if (q.get("login")) msg("Conectado! Agora marque abaixo quais contas vão para o painel.", true);
     // tira o resultado do endereço (fica só o link do convite)
-    if (q.get("erro") || q.get("ok")) history.replaceState(null, "", t ? `?t=${encodeURIComponent(t)}` : location.pathname);
+    if (q.get("erro") || q.get("login")) history.replaceState(null, "", t ? `?t=${encodeURIComponent(t)}` : location.pathname);
 
     async function load() {
       if (!t) { $("#title").textContent = "Link incompleto"; $("#lead").textContent = "Peça para a agência enviar o link de novo."; return; }
@@ -104,19 +116,58 @@
       $("#title").innerHTML = "";
       $("#title").append("Conecte as contas da ", Object.assign(document.createElement("em"), { textContent: d.name }));
       for (const p of ["google", "meta"]) {
-        const s = d[p];
-        if (!s.ready) continue;
+        if (!d.ready[p]) continue;
         $(`#card-${p}`).hidden = false;
         $(`#go-${p}`).href = `/api/oauth/${p}?convite=${encodeURIComponent(t)}`;
-        if (s.connected) {
-          $(`#card-${p}`).classList.add("is-on");
-          const st = $(`#st-${p}`); st.hidden = false; st.textContent = `✓ Conectado${s.account ? ` · ${s.account}` : ""}`;
-          const b = $(`#go-${p}`); b.textContent = "Conectar de novo"; b.className = "btn btn--ghost";
-        }
       }
       $("#tips").hidden = false;
-      const shown = ["google", "meta"].filter((p) => d[p].ready);
-      if (shown.length && shown.every((p) => d[p].connected)) $("#done").hidden = false;
+      // contas dos logins que o cliente conectou: marcar quais vão para o painel
+      const logins = d.logins || [];
+      for (const p of ["google", "meta"]) {
+        if (logins.some((L) => L.provider === p)) {
+          $(`#card-${p}`).classList.add("is-on");
+          const st = $(`#st-${p}`); st.hidden = false; st.textContent = "✓ Conectado";
+          const b = $(`#go-${p}`); b.textContent = "Conectar outra conta"; b.className = "btn btn--ghost";
+        }
+      }
+      if (!logins.length) return;
+      const pick = $("#pick");
+      pick.innerHTML = "";
+      const sel = new Set(d.selected || []);
+      for (const L of logins) {
+        const h3 = document.createElement("h3"); h3.textContent = `${L.provider === "google" ? "Google Ads" : "Facebook"} · ${L.label}`; pick.append(h3);
+        if (L.error) { const p = document.createElement("p"); p.className = "sub"; p.textContent = L.error; pick.append(p); }
+        if (!L.accounts.length && !L.error) { const p = document.createElement("p"); p.className = "sub"; p.textContent = "Nenhuma conta de anúncio neste login."; pick.append(p); }
+        for (const a of L.accounts) {
+          const lab = document.createElement("label"); lab.className = "opt";
+          const inp = Object.assign(document.createElement("input"), { type: "checkbox", checked: sel.has(`${L.provider}:${a.id}`) || L.accounts.length === 1 });
+          inp.dataset.login = L.id; inp.dataset.id = a.id; inp.className = "acc";
+          const sp = document.createElement("span"); const b = document.createElement("b"); b.textContent = a.name; const sm = document.createElement("small"); sm.textContent = `${a.id}${a.status && a.status !== "Ativa" ? ` · ${a.status}` : ""}`;
+          sp.append(b, sm); lab.append(inp, sp); pick.append(lab);
+        }
+        if (L.provider === "meta" && L.pages.length) {
+          const h4 = document.createElement("h3"); h4.textContent = "Página do Facebook (e Instagram)"; pick.append(h4);
+          for (const pg of L.pages) {
+            const lab = document.createElement("label"); lab.className = "opt";
+            const inp = Object.assign(document.createElement("input"), { type: "radio", name: "page", checked: d.page === pg.id || L.pages.length === 1 });
+            inp.dataset.login = L.id; inp.dataset.id = pg.id; inp.className = "pg";
+            const sp = document.createElement("span"); const b = document.createElement("b"); b.textContent = pg.name; const sm = document.createElement("small"); sm.textContent = pg.instagram ? `Instagram @${pg.instagram.username}` : "sem Instagram";
+            sp.append(b, sm); lab.append(inp, sp); pick.append(lab);
+          }
+        }
+      }
+      $("#choose").hidden = false;
+      $("#save").onclick = async () => {
+        const btn = $("#save"); btn.setAttribute("aria-disabled", "true");
+        const ads = [...document.querySelectorAll("input.acc:checked")].map((i) => ({ login: i.dataset.login, id: i.dataset.id }));
+        const pg = document.querySelector("input.pg:checked");
+        try {
+          const r = await fetch("/api/connect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ t, ads, page: pg ? { login: pg.dataset.login, id: pg.dataset.id } : null }) });
+          const j = await r.json(); if (!r.ok) throw new Error(j.error || "Não foi possível salvar.");
+          $("#choose").hidden = true; $("#done").hidden = false; msg(`Pronto! ${j.count} conta${j.count === 1 ? "" : "s"} no painel.`, true);
+          scrollTo({ top: 0, behavior: "smooth" });
+        } catch (e) { msg(e.message, false); btn.removeAttribute("aria-disabled"); }
+      };
     }
     load();
   </script>

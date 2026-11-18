@@ -8,11 +8,12 @@ import { json, readBody, fail } from "../../_lib/http.js";
 import { requireAdmin } from "../../_lib/admin.js";
 import { apps, saveApps, getConn, delConn, getClientConn, delClientConn } from "../../_lib/connections.js";
 import { findById } from "../../_lib/clients.js";
+import { adsOf } from "../../_lib/ads-accounts.js";
 import { storeEnabled } from "../../_lib/store.js";
 import { listGoogleAccounts, googleSnapshot, explainGoogleError } from "../../_lib/google-ads.js";
 import { listMetaAdAccounts, listPages, graphGet } from "../../_lib/meta-ads.js";
 import { redirectUri, makeInvite } from "../oauth.js";
-import { ingestKey, readScriptData, readScriptStatus, scriptTotals, scriptSource } from "../../_lib/ads-script.js";
+import { ingestKey, readScriptData, scriptTotals, scriptSource } from "../../_lib/ads-script.js";
 
 const mask = (v) => (v ? `••••${String(v).slice(-4)}` : "");
 
@@ -34,32 +35,23 @@ async function counts(provider) {
 const brl = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const n = (v) => Math.round(v || 0).toLocaleString("pt-BR");
 
-// Status de um cliente: quem está conectado e se os números chegam (últimos 30 dias)
+// Teste ao vivo de cada conta escolhida para o cliente (últimos 30 dias)
 async function clientStatus(c) {
-  const [g, m] = await Promise.all([getClientConn("google", c.id), getClientConn("meta", c.id)]);
-  const out = {
-    google: { own: !!g?.refreshToken, since: g?.connectedAt || null, by: g?.by || null, account: c.googleAds?.customerId ? { id: c.googleAds.customerId, name: c.googleAds.name || "" } : null },
-    meta: { own: !!m?.accessToken, since: m?.connectedAt || null, by: m?.by || null, name: m?.name || "", account: c.metaAds?.adAccountId ? { id: c.metaAds.adAccountId, name: c.metaAds.name || "" } : null },
-  };
-  const jobs = [];
-  const fmt = (t) => `Últimos 30 dias: ${brl(t.spend)} investidos · ${n(t.impressions)} impressões · ${n(t.clicks)} cliques${t.results ? ` · ${n(t.results)} conversões` : ""}`;
+  const fmt = (t) => `${brl(t.spend)} investidos · ${n(t.impressions)} impressões · ${n(t.clicks)} cliques${t.results ? ` · ${n(t.results)} conversões` : ""}`;
   const script = await readScriptData(c.id);
-  if (script) out.google.script = { updatedAt: script.updatedAt, account: script.account, rows: script.rows.length };
-  const sst = await readScriptStatus(c.id);
-  if (sst) out.google.scriptStatus = sst;
-  if (c.googleAds?.customerId) jobs.push(googleSnapshot(c.googleAds, c.id)
-    .then((t) => { out.google.test = { ok: true, text: fmt(t) }; })
-    .catch((e) => {
-      const why = explainGoogleError(e);
-      out.google.apiBlocked = /token de desenvolvedor|Conta de teste/i.test(why);
-      out.google.test = script ? { ok: true, text: `${fmt(scriptTotals(script))} (pelo script do Google Ads)` } : { ok: false, text: why };
-    }));
-  else if (script) out.google.test = { ok: true, text: `${fmt(scriptTotals(script))} (pelo script do Google Ads)` };
-  if (c.metaAds?.adAccountId) jobs.push(graphGet(`${c.metaAds.adAccountId}/insights`, new URLSearchParams({ date_preset: "last_30d", fields: "spend,impressions,clicks" }), undefined, c.id)
-    .then((rows) => { const r = rows?.[0] || {}; out.meta.test = { ok: true, text: `Últimos 30 dias: ${brl(r.spend)} investidos · ${n(Number(r.impressions))} impressões · ${n(Number(r.clicks))} cliques` }; })
-    .catch((e) => { out.meta.test = { ok: false, text: /não conectado/i.test(e.message) ? "Facebook ainda não conectado para este cliente." : "A Meta não liberou os números dessa conta. Clique em Conectar de novo." }; }));
-  await Promise.all(jobs);
-  return out;
+  const tests = await Promise.all(adsOf(c).map(async (a) => {
+    const ref = { c: c.id, login: a.login || "" };
+    try {
+      if (a.p === "google") return { p: a.p, id: a.id, name: a.name, ok: true, text: fmt(await googleSnapshot({ customerId: a.id, loginCustomerId: a.loginCustomerId }, ref)) };
+      const rows = await graphGet(`${a.id}/insights`, new URLSearchParams({ date_preset: "last_30d", fields: "spend,impressions,clicks" }), undefined, ref);
+      const r = rows?.[0] || {};
+      return { p: a.p, id: a.id, name: a.name, ok: true, text: fmt({ spend: Number(r.spend || 0), impressions: Number(r.impressions || 0), clicks: Number(r.clicks || 0) }) };
+    } catch (e) {
+      if (a.p === "google" && script) return { p: a.p, id: a.id, name: a.name, ok: true, text: `${fmt(scriptTotals(script))} (pelo script do Google Ads)` };
+      return { p: a.p, id: a.id, name: a.name, ok: false, text: a.p === "google" ? explainGoogleError(e) : /não conectado|expired/i.test(e.message) ? "O Facebook desta conta precisa ser reconectado em Conexões." : "A Meta não liberou os números dessa conta agora." };
+    }
+  }));
+  return { tests };
 }
 
 export default async function handler(req, res) {
@@ -72,7 +64,7 @@ export default async function handler(req, res) {
       const c = await findById(cid);
       if (!c) return json(res, 404, { error: "Cliente não encontrado." });
       const a = await apps();
-      return json(res, 200, { ready: { google: !!(a.google.clientId && a.google.developerToken), meta: !!(a.meta.appId && a.meta.appSecret) }, ...(await clientStatus(c)) });
+      return json(res, 200, { ready: { google: !!(a.google.clientId && a.google.clientSecret), meta: !!(a.meta.appId && a.meta.appSecret) }, ...(await clientStatus(c)) });
     }
     if (cid && req.method === "DELETE") {
       const p = url.searchParams.get("provider");

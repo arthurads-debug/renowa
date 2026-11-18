@@ -15,6 +15,7 @@ import ingest from "./_routes/ingest.js";
 import { metaOAuth, googleOAuth } from "./_routes/oauth.js";
 import adminIntegrations from "./_routes/admin/integrations.js";
 import adminPosts from "./_routes/admin/posts.js";
+import adminLogins from "./_routes/admin/logins.js";
 import adminAccounts from "./_routes/admin/accounts.js";
 import adminClients from "./_routes/admin/clients.js";
 import adminImpersonate from "./_routes/admin/impersonate.js";
@@ -28,6 +29,7 @@ const ROUTES = {
   "oauth/google": googleOAuth,
   "admin/integrations": adminIntegrations,
   "admin/posts": adminPosts,
+  "admin/logins": adminLogins,
   "admin/accounts": adminAccounts,
   "admin/clients": adminClients,
   "admin/impersonate": adminImpersonate,

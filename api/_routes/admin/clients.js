@@ -41,7 +41,22 @@ function clean(input, existing) {
   const pop = parseInt(String(input.city?.population || "").replace(/\D/g, ""), 10);
   if (profile === "awareness" && pop > 0) c.city = { name: str(input.city?.name, 80), population: pop };
 
-  // Contas vinculadas
+  // Contas de anúncio (uma ou várias, de qualquer login conectado)
+  if (Array.isArray(input.ads)) {
+    const seen = new Set();
+    c.ads = input.ads.slice(0, 30).map((a) => ({
+      p: a?.p === "meta" ? "meta" : "google",
+      login: str(a?.login, 40),
+      id: a?.p === "meta" ? `act_${str(a?.id, 40).replace(/\D/g, "")}` : str(a?.id, 20).replace(/[^\d-]/g, ""),
+      name: str(a?.name, 120),
+      loginCustomerId: str(a?.loginCustomerId, 20).replace(/[^\d-]/g, ""),
+      currency: /^[A-Z]{3}$/.test(a?.currency || "") ? a.currency : "",
+    })).filter((a) => a.id.replace(/\D/g, "").length >= 6 && !seen.has(`${a.p}:${a.id}`) && seen.add(`${a.p}:${a.id}`));
+  }
+  const mc = input.metaAds || {};
+  const types = (v) => (Array.isArray(v) ? v : []).map((x) => str(x, 80)).filter(Boolean).slice(0, 5);
+  c.metaConfig = { resultActionTypes: types(mc.resultActionTypes || input.metaConfig?.resultActionTypes), revenueActionTypes: types(mc.revenueActionTypes || input.metaConfig?.revenueActionTypes) };
+  // Contas no formato antigo (um por plataforma) — continuam valendo enquanto não houver "ads"
   const g = input.googleAds || {};
   if (str(g.customerId)) c.googleAds = { customerId: str(g.customerId, 20).replace(/[^\d-]/g, ""), name: str(g.name, 120), loginCustomerId: str(g.loginCustomerId, 20).replace(/[^\d-]/g, "") };
   const m = input.metaAds || {};
@@ -55,9 +70,9 @@ function clean(input, existing) {
     };
   }
   const f = input.facebook || {};
-  if (str(f.pageId)) c.facebook = { pageId: str(f.pageId, 40).replace(/\D/g, ""), name: str(f.name, 120) };
+  if (str(f.pageId)) c.facebook = { pageId: str(f.pageId, 40).replace(/\D/g, ""), name: str(f.name, 120), login: str(f.login, 40) };
   const ig = input.instagram || {};
-  if (str(ig.userId)) c.instagram = { userId: str(ig.userId, 40).replace(/\D/g, ""), username: str(ig.username, 60).replace(/^@/, "") };
+  if (str(ig.userId)) c.instagram = { userId: str(ig.userId, 40).replace(/\D/g, ""), username: str(ig.username, 60).replace(/^@/, ""), login: str(ig.login, 40) };
 
   // Planilhas e formulário
   const sh = input.sheets || {};

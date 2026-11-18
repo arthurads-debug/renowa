@@ -2,6 +2,7 @@
 // Se o mesmo id existir nos dois, vale o do painel.
 import crypto from "node:crypto";
 import { readClients } from "./store.js";
+import { adsOf } from "./ads-accounts.js";
 
 let cache = { at: 0, list: null };
 const TTL = 10_000;
@@ -61,9 +62,7 @@ export function burn(password) {
 const PROFILES = ["awareness", "leads", "sales"];
 
 export function connectedAccounts(c) {
-  const out = [];
-  if (c.googleAds?.customerId) out.push({ platform: "google", label: "Google Ads", name: c.googleAds.name || "", id: c.googleAds.customerId });
-  if (c.metaAds?.adAccountId) out.push({ platform: "meta", label: "Meta Ads", name: c.metaAds.name || "", id: c.metaAds.adAccountId });
+  const out = adsOf(c).map((a) => ({ platform: a.p, label: a.p === "google" ? "Google Ads" : "Meta Ads", name: a.name || "", id: a.id }));
   if (c.facebook?.pageId) out.push({ platform: "facebook", label: "Facebook", name: c.facebook.name || "", id: c.facebook.pageId });
   if (c.instagram?.userId) out.push({ platform: "instagram", label: "Instagram", name: c.instagram.username ? `@${c.instagram.username}` : "", id: c.instagram.userId });
   return out;
@@ -79,7 +78,7 @@ export function publicProfile(c, viewer = "client") {
     resultLabel: c.resultLabel || (c.profile === "sales" ? "Vendas" : "Contatos"),
     currency: c.currency || "BRL",
     city: c.city?.population ? { name: c.city.name || "", population: Number(c.city.population) } : null,
-    platforms: { google: !!c.googleAds?.customerId, meta: !!c.metaAds?.adAccountId },
+    platforms: { google: adsOf(c).some((a) => a.p === "google"), meta: adsOf(c).some((a) => a.p === "meta") },
     accounts: connectedAccounts(c).map(({ platform, label, name }) => ({ platform, label, name })),
     has: {
       instagram: !!c.instagram?.userId,

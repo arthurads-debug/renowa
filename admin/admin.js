@@ -5,7 +5,9 @@ import { netBadge } from "/cliente/assets/components.js";
 import { demoRecords, saveDemoRecords } from "/cliente/assets/demo.js";
 import { initLeads, STAGES } from "/admin/leads.js";
 import { initNav, KEY_HINT } from "/admin/nav.js";
-import { initIntegrations } from "/admin/integrations.js";
+import { initConexoes, LOGO, legacy } from "/admin/conexoes.js";
+import { renderHome } from "/admin/home.js";
+import { mountBrand3D } from "/admin/brand3d.js";
 import { initCalendar } from "/admin/calendar.js";
 
 const BRAND = "Renowa";
@@ -22,7 +24,7 @@ const RESULT_TYPES = [
   { v: "complete_registration", label: "Cadastros no site" },
 ];
 
-const state = { demo: false, email: null, setup: null, clients: [], accounts: null, accountsFor: null, cx: null, cxMsg: null, search: "" };
+const state = { logins: null, demo: false, email: null, setup: null, clients: [], accounts: null, accountsFor: null, cx: null, cxMsg: null, search: "" };
 
 /* =========================================================
    BACKEND (API real ou demonstração)
@@ -163,6 +165,7 @@ function showLogin(msg) {
   $("#view-login").hidden = false;
   $("#demo-hint").hidden = !state.demo;
   $("#login-error").textContent = msg || "";
+  mountBrand3D($("#login-3d"));
   $("#login-email").focus();
 }
 
@@ -174,27 +177,25 @@ async function showApp() {
   $("#admin-email").textContent = state.email;
   renderSetup();
   showTab(currentTab());
-  await Promise.all([refreshList(), leads.refresh()]);
-  const q = new URLSearchParams(location.search);
-  if (q.get("cliente") && q.get("conexao")) {
-    const c = state.clients.find((x) => x.id === q.get("cliente"));
-    state.cxMsg = { provider: q.get("conexao"), err: q.get("erro") || "", ok: q.get("ok") ? `Conectado! ${q.get("ok")}` : "" };
-    history.replaceState(null, "", `${location.pathname}#clientes`);
-    if (c) openEditor(c, {}, { focusConnect: true });
-  }
+  await Promise.all([refreshList(), leads.refresh(), conexoes.load()]);
+  if (currentTab() === "inicio") drawHome();
+  conexoes.handleReturn();
+
 }
 
 /* ---------- Abas: Leads (CRM) e Clientes ---------- */
-let integrations = null, calendar = null;
-const TABS = ["leads", "clientes", "calendario", "integracoes"];
-const currentTab = () => (TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "leads");
+let conexoes = null, calendar = null;
+const TABS = ["inicio", "leads", "clientes", "calendario", "conexoes"];
+const currentTab = () => { const t = location.hash.slice(1); return t === "integracoes" ? "conexoes" : TABS.includes(t) ? t : "inicio"; };
 function showTab(tab) {
   TABS.forEach((t) => {
     $(`#tab-${t}`).hidden = t !== tab;
     $$(`[data-tab="${t}"]`).forEach((link) => (t === tab ? link.setAttribute("aria-current", "page") : link.removeAttribute("aria-current")));
   });
   window.scrollTo({ top: 0 });
-  if (tab === "integracoes") integrations?.load();
+  if (tab === "conexoes") conexoes?.load();
+  if (tab === "inicio") drawHome();
+  const v = $(`#tab-${tab}`); if (v && !matchMedia("(prefers-reduced-motion: reduce)").matches) { v.classList.remove("tab-in"); void v.offsetWidth; v.classList.add("tab-in"); }
   if (tab === "calendario") calendar?.load();
   if (location.hash.slice(1) !== tab) history.replaceState(null, "", `#${tab}`);
 }
@@ -255,13 +256,14 @@ function renderList() {
     h("div", {}, h("span", { class: "chip chip--profile" }, PROFILE_NAME[c.profile] || "Contato e loja física"), c.pending ? h("span", { class: "chip st--wait" }, "Aguardando liberação") : c.active === false ? h("span", { class: "chip st--plan" }, "Acesso pausado") : null),
     c.pending ? h("p", { class: "cli__mail" }, `Cadastro feito pelo site${c.contactName ? ` por ${c.contactName}` : ""}${c.phone ? ` · ${c.phone}` : ""}`) : null,
     h("div", { class: "cli__nets" },
-      netLine("google", c.googleAds?.customerId && `${c.googleAds.name || "Google Ads"} · ${c.googleAds.customerId}`, "Google Ads"),
-      netLine("meta", c.metaAds?.adAccountId && `${c.metaAds.name || "Meta Ads"} · ${c.metaAds.adAccountId}`, "Meta Ads"),
+      ...(() => { const ads = Array.isArray(c.ads) ? c.ads : legacy(c); const g = ads.filter((x) => x.p === "google"), m = ads.filter((x) => x.p === "meta");
+        return [netLine("google", g.length && g.map((x) => x.name || x.id).join(" · "), "Google Ads"), netLine("meta", m.length && m.map((x) => x.name || x.id).join(" · "), "Meta Ads")]; })(),
       netLine("facebook", c.facebook?.pageId && (c.facebook.name || c.facebook.pageId), "Facebook"),
       netLine("instagram", c.instagram?.userId && `@${c.instagram.username || c.instagram.userId}`, "Instagram")),
     h("div", { class: "cli__actions" },
       c.active === false ? h("button", { class: "btn btn--primary btn--sm", onclick: (e) => approve(c, e.currentTarget) }, "Liberar acesso") : null,
-      h("button", { class: "btn btn--ghost btn--sm", onclick: () => openEditor(c) }, "Editar e contas"),
+      h("button", { class: "btn btn--ghost btn--sm", onclick: () => pickAccounts(c) }, "Contas de anúncio"),
+      h("button", { class: "btn btn--ghost btn--sm", onclick: () => openEditor(c) }, "Editar"),
       h("button", { class: "btn btn--primary btn--sm", onclick: () => backend.openReport(c.id).catch((e) => toast(e.message)) }, "Ver relatório")))));
 }
 
@@ -276,6 +278,7 @@ async function approve(c, btn) {
 
 $("#search").addEventListener("input", (e) => { state.search = e.target.value; renderList(); });
 $("#btn-new").addEventListener("click", () => openEditor(null));
+$("#top-new").addEventListener("click", () => openEditor(null));
 
 /* =========================================================
    EDITOR
@@ -297,10 +300,9 @@ function openEditor(client, prefill = {}, opts = {}) {
   renderEditor();
   if (opts.focusConnect) { const p = $("#drawer .drawer__panel"), t = $("#cx"); if (p && t) p.scrollTop = t.offsetTop - 10; } else $("#ed-name")?.focus();
   if (client) loadCx(client.id);
-  if (!state.accounts || state.accountsFor !== (client?.id || null)) loadAccounts(false);
 }
 
-// Conexões do cliente (Google e Facebook próprios dele) + teste dos números
+// Teste ao vivo das contas escolhidas (últimos 30 dias)
 async function loadCx(id) {
   state.cx = { loading: true, id };
   if (form?.id === id) renderEditor(true);
@@ -312,7 +314,6 @@ async function loadCx(id) {
 function closeEditor() {
   const d = $("#drawer");
   if (d.hidden) return;
-  state.cxMsg = null;
   d.classList.remove("is-open");
   document.body.classList.remove("no-scroll");
   setTimeout(() => (d.hidden = true), 250);
@@ -321,49 +322,8 @@ function closeEditor() {
 $("#drawer").addEventListener("click", (e) => e.target.closest("[data-close]") && closeEditor());
 document.addEventListener("keydown", (e) => e.key === "Escape" && closeEditor());
 
-async function loadAccounts(fresh) {
-  const id = form && !form.isNew ? form.id : null;
-  state.accounts = { loading: true };
-  state.accountsFor = id;
-  if (form) renderEditor(true);
-  try { state.accounts = await backend.accounts(fresh, id); }
-  catch (e) { state.accounts = { google: { items: [], error: e.message }, meta: { items: [], error: e.message }, pages: { items: [], error: e.message }, instagram: { items: [], error: e.message } }; }
-  if (form) renderEditor(true);
-}
-
 const fld = (label, input, hint) => h("div", { class: "fld" }, h("label", { for: input.id }, label), input, hint ? h("small", {}, hint) : null);
 const inp = (id, value, props = {}) => h("input", { id, value: value ?? "", ...props });
-
-// Linha de conta: lista vinda da API + opção de digitar o ID
-function accountRow({ platform, title, desc, list, value, label, onPick, placeholder }) {
-  const loading = state.accounts?.loading;
-  const items = list?.items || [];
-  const sel = h("select", { id: `acc-${platform}`, "aria-label": `Conta de ${title}` });
-  sel.append(h("option", { value: "" }, loading ? "Carregando contas…" : "— Nenhuma conta vinculada —"));
-  const known = items.some((i) => i.id === value);
-  if (value && !known) sel.append(h("option", { value, selected: true }, `${label || value} · ${value} (atual)`));
-  items.forEach((i) => sel.append(h("option", { value: i.id, selected: i.id === value }, i.text)));
-  sel.append(h("option", { value: "__manual" }, "Digitar o ID manualmente…"));
-
-  const manual = h("div", { class: "manual", hidden: true },
-    h("input", { placeholder, "aria-label": `ID da conta de ${title}` }),
-    h("button", { type: "button", class: "btn btn--ghost btn--sm", onclick: (e) => {
-      const v = e.currentTarget.previousElementSibling.value.trim();
-      if (v) onPick({ id: v, name: "" });
-    } }, "Usar"));
-  sel.addEventListener("change", () => {
-    if (sel.value === "__manual") { manual.hidden = false; manual.querySelector("input").focus(); return; }
-    manual.hidden = true;
-    const it = items.find((i) => i.id === sel.value);
-    onPick(sel.value ? { ...(it || {}), id: sel.value, name: it?.name || label || "" } : null);
-  });
-
-  const status = list?.error ? h("p", { class: "status is-err" }, list.error)
-    : value ? h("p", { class: "status is-ok" }, `✓ Vinculada: ${label || value}`)
-    : h("p", { class: "status" }, desc);
-  return h("div", { class: "acc-row" }, netBadge(platform), h("div", { class: "acc-row__body fld" },
-    h("div", { class: "acc-row__top" }, h("strong", {}, title)), sel, manual, status));
-}
 
 const dateBR = (s) => (s ? new Date(s).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "");
 
@@ -390,79 +350,64 @@ async function copyScript(f, btn) {
   btn.disabled = false;
 }
 
-function scriptBox(f, d) {
-  const sc = d.script;
-  const when = sc?.updatedAt ? new Date(sc.updatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
-  return h("details", { class: "cx__script", open: (d.apiBlocked && !sc) || undefined },
-    h("summary", {}, sc ? `✓ Script do Google Ads ativo · último envio ${when}` : d.apiBlocked ? "Ver os números agora, sem esperar o Google (2 minutos)" : "Alternativa: ligar pelo script do Google Ads"),
-    d.scriptStatus && !d.scriptStatus.ok ? h("p", { class: "cx__test is-err" }, h("strong", {}, `O script rodou em ${new Date(d.scriptStatus.at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}, mas não trouxe números: `), d.scriptStatus.error,
-      d.scriptStatus.account?.name ? ` (conta: ${d.scriptStatus.account.name})` : "", d.scriptStatus.detail?.length ? h("small", { style: { display: "block", marginTop: "4px" } }, d.scriptStatus.detail.join(" · ")) : null) : null,
-    d.apiBlocked && !sc ? h("p", { class: "cx__why" }, "O Google ainda não liberou o token da agência para contas reais. Enquanto isso, este script, colado uma vez na conta do cliente, manda os números para o painel a cada hora.") : null,
-    h("ol", { class: "cx__steps" },
-      h("li", {}, h("span", {}, h("button", { type: "button", class: "btn btn--primary btn--sm", onclick: (e) => copyScript(f, e.currentTarget) }, "Copiar script"))),
-      h("li", {}, h("span", {}, "Abra o ", h("a", { class: "link", href: "https://ads.google.com/aw/bulk/scripts", target: "_blank", rel: "noopener" }, "Google Ads → Scripts"), " já na conta deste cliente e clique no ", h("b", {}, "+"), " → ", h("b", {}, "Novo script"), ".")),
-      h("li", {}, h("span", {}, "Apague o que estiver escrito, ", h("b", {}, "cole"), " o script e clique em ", h("b", {}, "Autorizar"), " (aceite com o seu Google).")),
-      h("li", {}, h("span", {}, "Clique em ", h("b", {}, "Salvar"), " e depois em ", h("b", {}, "Executar"), ". Na lista de scripts, em ", h("b", {}, "Frequência"), ", escolha ", h("b", {}, "De hora em hora"), ".")),
-      h("li", {}, h("span", {}, "Volte aqui e clique em ", h("button", { type: "button", class: "link", onclick: () => loadCx(f.id) }, "verificar"), ". Os números dos últimos 30 dias aparecem neste cartão."))));
+// Contas de anúncio do cliente: escolhidas entre as dos logins conectados (Conexões)
+const adsOfForm = (f) => (Array.isArray(f.ads) ? f.ads : legacy(f));
+function pickAccounts(c) {
+  return conexoes.openPicker(c, { onApply: (patch) => saveClient(c, patch) });
 }
-
-function cxCard(f, provider) {
-  const cx = state.cx;
-  const d = cx?.data?.[provider] || {};
-  const ready = cx?.data?.ready?.[provider];
-  const title = provider === "google" ? "Google Ads" : "Facebook e Instagram";
-  const msg = state.cxMsg?.provider === provider ? state.cxMsg : null;
-  let status;
-  if (cx?.loading || !cx) status = h("p", { class: "cx__st" }, "Verificando…");
-  else if (cx.error) status = h("p", { class: "cx__st is-err" }, cx.error);
-  else if (!ready) status = h("p", { class: "cx__st is-warn" }, "Falta ativar a conexão da agência (uma vez só). ", h("a", { href: "#integracoes" }, "Ver como"));
-  else if (d.own) status = h("p", { class: "cx__st is-ok" }, `✓ Conectado${d.by === "cliente" ? " pelo cliente" : ""}${d.since ? ` em ${dateBR(d.since)}` : ""}${d.name ? ` · ${d.name}` : ""}`);
-  else status = h("p", { class: "cx__st" }, provider === "meta" && d.account ? "Usando o Facebook da agência" : "Não conectado");
-  const test = d.test ? h("p", { class: `cx__test ${d.test.ok ? "is-ok" : "is-err"}` }, d.test.ok ? h("strong", {}, "Funcionando. ") : h("strong", {}, "Sem números: "), d.test.text)
-    : d.own && !d.account ? h("p", { class: "cx__test is-warn" }, "Escolha a conta de anúncios em “Contas escolhidas”, logo abaixo, e salve.") : null;
-  const href = state.demo ? "#clientes" : `/api/oauth/${provider}?cliente=${encodeURIComponent(f.id)}`;
-  return h("article", { class: `cx__card${d.own ? " is-on" : ""}${d.test && !d.test.ok ? " is-bad" : ""}` },
-    h("header", {}, netBadge(provider), h("strong", {}, title)),
-    status,
-    msg && (msg.err || msg.ok) ? h("p", { class: `cx__test ${msg.err ? "is-err" : "is-ok"}`, role: "status" }, msg.err || msg.ok) : null,
-    test,
-    provider === "google" && ready && !cx?.loading && (d.apiBlocked || d.script || (d.test && !d.test.ok)) ? scriptBox(f, d) : null,
-    h("div", { class: "cx__btns" },
-      h("a", { class: `btn ${d.own ? "btn--ghost" : "btn--primary"} btn--sm`, href, "aria-disabled": ready === false ? "true" : null,
-        onclick: (e) => { if (state.demo) { e.preventDefault(); toast("Na demonstração o login não abre."); } } }, d.own ? "Conectar de novo" : `Conectar ${provider === "google" ? "Google" : "Facebook"}`),
-      d.own ? h("button", { type: "button", class: "link", onclick: async () => {
-        if (!confirm(`Desconectar o ${title} de ${f.name}?`)) return;
-        try { await backend.disconnectClient(f.id, provider); toast("Desconectado."); loadCx(f.id); } catch (e) { toast(e.message); }
-      } }, "Desconectar") : null));
-}
-
-function connectBox(f) {
-  if (f.isNew) return h("p", { class: "cx__new" }, "Cadastre o cliente primeiro. Logo depois aparecem os botões para conectar o Google e o Facebook dele.");
-  return h("div", { class: "cx" },
-    h("ol", { class: "cx__how" },
-      h("li", {}, h("span", {}, h("b", {}, "Clique em Conectar"), " e entre com o e-mail que administra os anúncios deste cliente.")),
-      h("li", {}, h("span", {}, h("b", {}, "Clique em Continuar"), " na tela do Google ou do Facebook.")),
-      h("li", {}, h("span", {}, h("b", {}, "Pronto."), " A conta é escolhida sozinha e o teste abaixo mostra os números dos últimos 30 dias."))),
-    h("div", { class: "cx__grid" }, cxCard(f, "google"), cxCard(f, "meta")),
+function accountsBox(f) {
+  if (f.isNew) return h("p", { class: "cx__new" }, "Cadastre o cliente primeiro. Em seguida você escolhe as contas de anúncio dele.");
+  const ads = adsOfForm(f);
+  const tests = state.cx?.data?.tests || [];
+  const test = (a) => tests.find((t) => t.id === a.id && t.p === a.p);
+  const ready = state.logins?.ready || {};
+  const href = (p) => (state.demo ? "#clientes" : `/api/oauth/${p}?cliente=${encodeURIComponent(f.id)}`);
+  return h("div", { class: "accs" },
+    ads.length ? h("ul", { class: "accs__list" }, ads.map((a) => {
+      const t = test(a);
+      return h("li", { class: `accs__item ${t ? (t.ok ? "is-ok" : "is-bad") : ""}` }, LOGO[a.p](),
+        h("div", {}, h("b", {}, a.name || a.id), h("small", {}, `${a.p === "google" ? "Google Ads" : "Meta Ads"} · ${a.id}`),
+          h("p", { class: "accs__test" }, state.cx?.loading ? "Testando…" : t ? (t.ok ? `✓ Últimos 30 dias: ${t.text}` : t.text) : "")));
+    })) : h("div", { class: "accs__empty" }, h("strong", {}, "Nenhuma conta escolhida"), h("p", {}, "Escolha as contas de anúncio e os números aparecem no relatório na hora.")),
+    h("div", { class: "accs__btns" },
+      h("button", { type: "button", class: "btn btn--primary", onclick: () => pickAccounts(f) }, ads.length ? "Trocar contas" : "Escolher contas de anúncio"),
+      ready.google ? h("a", { class: "btn btn--ghost btn--sm", href: href("google"), onclick: (e) => { if (state.demo) { e.preventDefault(); toast("Na demonstração o login não abre."); } } }, LOGO.google(), "Conectar Google") : null,
+      ready.meta ? h("a", { class: "btn btn--ghost btn--sm", href: href("meta"), onclick: (e) => { if (state.demo) { e.preventDefault(); toast("Na demonstração o login não abre."); } } }, LOGO.meta(), "Conectar Facebook") : null),
     h("div", { class: "cx__invite" },
-      h("p", {}, h("b", {}, "Não tem o login do cliente?"), " Mande um link: ele mesmo clica e conecta, sem senha e sem precisar de você."),
-      h("button", { type: "button", class: "btn btn--ghost btn--sm", onclick: (e) => sendInvite(f, e.currentTarget) }, "Enviar link pelo WhatsApp")));
+      h("p", {}, h("b", {}, "Quer que o cliente conecte?"), " Mande um link: ele faz login no Google/Facebook dele e marca as contas. Sem senha nova."),
+      h("button", { type: "button", class: "btn btn--ghost btn--sm", onclick: (e) => sendInvite(f, e.currentTarget) }, "Enviar link pelo WhatsApp")),
+    f.facebook?.pageId || f.instagram?.userId ? h("p", { class: "ed__hint" }, "Orgânico: ", [f.facebook?.name && `Facebook ${f.facebook.name}`, f.instagram?.username && `Instagram @${f.instagram.username}`].filter(Boolean).join(" · ")) : null);
+}
+
+// Salva só as contas (ou outro trecho) de um cliente, sem abrir o editor
+async function saveClient(c, patch) {
+  const base = state.clients.find((x) => x.id === c.id) || c;
+  const m = { ...base, ...patch };
+  await backend.save({
+    id: m.id, name: m.name, contactName: m.contactName, email: m.email,
+    profile: m.profile, resultLabel: m.resultLabel, note: m.note, active: m.active !== false,
+    city: m.profile === "awareness" ? m.city : undefined,
+    ads: Array.isArray(m.ads) ? m.ads : legacy(m),
+    metaAds: { resultActionTypes: m.metaConfig?.resultActionTypes || m.metaAds?.resultActionTypes || [] },
+    facebook: m.facebook || undefined, instagram: m.instagram || undefined,
+    sheets: m.sheets, salesFormUrl: m.profile === "leads" ? m.salesFormUrl : undefined,
+  });
+  toast(`Contas de ${m.name} salvas. Testando os números…`);
+  await refreshList();
+  if (form && form.id === c.id) { Object.assign(form, patch); renderEditor(true); }
+  if (form && form.id === c.id) loadCx(c.id);
+  if (currentTab() === "inicio") drawHome();
+  if (currentTab() === "conexoes") conexoes.render();
 }
 
 function renderEditor(keepScroll) {
   const panel = $("#drawer .drawer__panel");
   const top = panel.scrollTop;
   const f = form;
-  const A = state.accounts || {};
   const set = (k) => (e) => { f[k] = e.target.value; };
 
-  const gList = A.google && { ...A.google, items: (A.google.items || []).map((a) => ({ ...a, text: `${a.name} · ${a.id}${a.status && a.status !== "Ativa" ? ` (${a.status})` : ""}` })) };
-  const mList = A.meta && { ...A.meta, items: (A.meta.items || []).map((a) => ({ ...a, text: `${a.name} · ${a.id}${a.business ? ` — ${a.business}` : ""}${a.status && a.status !== "Ativa" ? ` (${a.status})` : ""}` })) };
-  const pList = A.pages && { ...A.pages, items: (A.pages.items || []).map((p) => ({ ...p, text: `${p.name}${p.instagram ? ` · Instagram @${p.instagram.username}` : " · sem Instagram ligado"}` })) };
-  const iList = A.instagram && { ...A.instagram, items: (A.instagram.items || []).map((i) => ({ ...i, name: i.username, text: `@${i.username} · página ${i.page}` })) };
-
-  const metaTypes = f.metaAds?.resultActionTypes?.[0] || "";
-  const resultSelect = h("select", { id: "ed-result-type", onchange: (e) => { f.metaAds = { ...(f.metaAds || {}), resultActionTypes: e.target.value ? [e.target.value] : [] }; } },
+  const metaTypes = f.metaConfig?.resultActionTypes?.[0] || f.metaAds?.resultActionTypes?.[0] || "";
+  const resultSelect = h("select", { id: "ed-result-type", onchange: (e) => { f.metaConfig = { ...(f.metaConfig || {}), resultActionTypes: e.target.value ? [e.target.value] : [] }; } },
     h("option", { value: "" }, "— Escolha —"),
     RESULT_TYPES.map((t) => h("option", { value: t.v, selected: t.v === metaTypes }, t.label)),
     metaTypes && !RESULT_TYPES.some((t) => t.v === metaTypes) ? h("option", { value: metaTypes, selected: true }, metaTypes) : null);
@@ -506,27 +451,10 @@ function renderEditor(keepScroll) {
         fld("Cidade", inp("ed-city", f.city?.name, { oninput: (e) => (f.city = { ...(f.city || {}), name: e.target.value }) })),
         fld("População", inp("ed-pop", f.city?.population, { inputmode: "numeric", oninput: (e) => (f.city = { ...(f.city || {}), population: e.target.value.replace(/\D/g, "") }) }), "Mostra “o equivalente a X% da população alcançada”.")) : null),
 
-    // 3. Contas
+    // 3. Contas de anúncio
     h("section", { class: "ed__sec" },
-      h("h3", { id: "cx" }, h("span", { class: "num" }, "3"), "Conectar Google e Facebook"),
-      connectBox(f),
-      h("details", { class: "cx__more", open: !!(f.googleAds?.customerId || f.metaAds?.adAccountId || f.facebook?.pageId) || undefined },
-        h("summary", {}, "Contas escolhidas para o relatório",
-          h("button", { type: "button", class: "link", style: { marginLeft: "auto", fontSize: "13px" }, onclick: (e) => { e.preventDefault(); loadAccounts(true); } }, "Atualizar listas")),
-        h("p", { class: "ed__hint", style: { marginTop: "6px" } }, "Quando o login tem só uma conta, ela já vem escolhida. Se tiver várias, escolha aqui qual é deste cliente e salve."),
-      accountRow({ platform: "google", title: "Google Ads", desc: "Conta de anúncios do cliente sob a sua MCC.", list: gList, value: f.googleAds?.customerId, label: f.googleAds?.name, placeholder: "123-456-7890",
-        onPick: (v) => { f.googleAds = v ? { customerId: v.id, name: v.name, loginCustomerId: v.loginCustomerId || "" } : null; renderEditor(true); } }),
-      accountRow({ platform: "meta", title: "Meta Ads (Facebook e Instagram Ads)", desc: "Conta de anúncios do cliente no Business Manager.", list: mList, value: f.metaAds?.adAccountId, label: f.metaAds?.name, placeholder: "act_1234567890",
-        onPick: (v) => { f.metaAds = v ? { ...(f.metaAds || {}), adAccountId: v.id, name: v.name } : null; renderEditor(true); } }),
-      accountRow({ platform: "facebook", title: "Página do Facebook", desc: "Posts, alcance e interações orgânicas da página.", list: pList, value: f.facebook?.pageId, label: f.facebook?.name, placeholder: "ID da página",
-        onPick: (v) => {
-          f.facebook = v ? { pageId: v.id, name: v.name } : null;
-          const page = pList?.items.find((p) => p.id === v?.id);
-          if (page?.instagram && !f.instagram?.userId) { f.instagram = { userId: page.instagram.id, username: page.instagram.username }; toast(`Instagram @${page.instagram.username} vinculado junto com a página.`); }
-          renderEditor(true);
-        } }),
-      accountRow({ platform: "instagram", title: "Instagram", desc: "Conta comercial do Instagram ligada a uma página.", list: iList, value: f.instagram?.userId, label: f.instagram?.username ? `@${f.instagram.username}` : "", placeholder: "ID da conta do Instagram",
-        onPick: (v) => { f.instagram = v ? { userId: v.id, username: v.name } : null; renderEditor(true); } }))),
+      h("h3", { id: "cx" }, h("span", { class: "num" }, "3"), "Contas de anúncio"),
+      accountsBox(f)),
 
     // 4. Conteúdo
     h("section", { class: "ed__sec" },
@@ -563,7 +491,7 @@ async function save(btn, err) {
     name: f.name, contactName: f.contactName, email: f.email, password: f.password || undefined,
     profile: f.profile, resultLabel: f.resultLabel, note: f.note, active: f.active !== false,
     city: f.profile === "awareness" ? f.city : undefined,
-    googleAds: f.googleAds || undefined, metaAds: f.metaAds || undefined, facebook: f.facebook || undefined, instagram: f.instagram || undefined,
+    ads: adsOfForm(f), metaAds: { resultActionTypes: f.metaConfig?.resultActionTypes || f.metaAds?.resultActionTypes || [] }, facebook: f.facebook || undefined, instagram: f.instagram || undefined,
     sheets: f.sheets, salesFormUrl: f.profile === "leads" ? f.salesFormUrl : undefined,
   };
   btn.disabled = true;
@@ -572,7 +500,7 @@ async function save(btn, err) {
   try {
     const saved = await backend.save(payload);
     closeEditor();
-    toast(f.isNew ? `${f.name} cadastrado. Agora conecte o Google e o Facebook dele.` : "Alterações salvas. O relatório do cliente já usa as novas contas.");
+    toast(f.isNew ? `${f.name} cadastrado. Agora escolha as contas de anúncio dele.` : "Alterações salvas.");
     await refreshList();
     if (f.isNew && saved) { const c = state.clients.find((x) => x.id === saved.id); if (c) setTimeout(() => openEditor(c, {}, { focusConnect: true }), 300); }
   } catch (e) {
@@ -623,7 +551,8 @@ $("#btn-logout").addEventListener("click", async () => {
 });
 
 const leads = initLeads({ state, api, toast, openEditor, showTab: (t) => showTab(t) });
-integrations = initIntegrations({ state, api, toast });
+conexoes = initConexoes({ state, api, toast, saveClient, openClient: (c) => openEditor(c) });
+const drawHome = () => renderHome({ state, leads, conexoes, go: (t) => { location.hash = t; }, openClient: (c, o = {}) => (o.accounts ? pickAccounts(c) : openEditor(c)), newClient: () => openEditor(null) });
 calendar = initCalendar({ state, api, toast });
 
 /* ---------- Busca rápida: qualquer função, lead ou cliente em um lugar ---------- */
@@ -638,7 +567,8 @@ const nav = initNav(() => {
     { group: "Ir para", icon: "leads", label: "Leads · aplicações do site", hint: "CRM", keywords: "crm funil propostas", run: go("leads") },
     { group: "Ir para", icon: "clients", label: "Clientes · relatórios", hint: pending.length ? `${pending.length} aguardando liberação` : "", keywords: "relatorios contas", run: go("clientes") },
     { group: "Ir para", icon: "report", label: "Calendário editorial", hint: "montar posts dos clientes", keywords: "conteudo posts agenda publicacoes", run: go("calendario") },
-    { group: "Ir para", icon: "link", label: "Configuração da agência · Google e Facebook", hint: "feito uma vez", keywords: "meta google ads instagram conectar login token", run: go("integracoes") },
+    { group: "Ir para", icon: "link", label: "Conexões · Google e Facebook", hint: "conectar contas de anúncio", keywords: "meta google ads instagram conectar login contas integracao", run: go("conexoes") },
+    { group: "Ir para", icon: "report", label: "Início", keywords: "painel resumo home", run: go("inicio") },
     { group: "Ir para", icon: "site", label: "Abrir o site (proposta)", hint: "nova aba", keywords: "home pagina inicial", run: () => window.open("/", "_blank", "noopener") },
     { group: "Ir para", icon: "portal", label: "Área do Cliente", hint: "nova aba", keywords: "portal login cliente", run: () => window.open("/cliente/", "_blank", "noopener") },
     { group: "Ações", icon: "plus", label: "Cadastrar novo cliente", keywords: "criar adicionar", run: () => { go("clientes")(); openEditor(null); } },
@@ -650,6 +580,7 @@ const nav = initNav(() => {
     ...L.map((l) => ({ group: "Leads", icon: "person", label: l.nome, hint: [l.empresa, l.whatsapp].filter(Boolean).join(" · "), keywords: `${l.email} ${l.empresa}`, searchOnly: true, run: () => { go("leads")(); leads.open(l.id); } })),
     ...state.clients.flatMap((c) => [
       { group: "Clientes", icon: "report", label: `${c.name} · ver relatório`, hint: c.email, keywords: c.contactName || "", searchOnly: true, run: () => backend.openReport(c.id).catch((e) => toast(e.message)) },
+      { group: "Clientes", icon: "link", label: `${c.name} · escolher contas de anúncio`, keywords: `${c.email} google meta ads`, searchOnly: true, run: () => pickAccounts(c) },
       { group: "Clientes", icon: "clients", label: `${c.name} · editar e contas`, hint: c.pending ? "aguardando liberação" : "", keywords: `${c.email} ${c.contactName || ""}`, searchOnly: true, run: () => { go("clientes")(); openEditor(c); } },
     ]),
     { group: "Conta", icon: "out", label: "Sair do painel", searchOnly: true, run: () => $("#btn-logout").click() },
@@ -657,7 +588,6 @@ const nav = initNav(() => {
   return items;
 });
 $("#btn-find").addEventListener("click", () => nav.show());
-$("#dock-find").addEventListener("click", () => nav.show());
 $("#find-kbd").textContent = KEY_HINT;
 // o selo de leads novos também aparece no menu do celular
 new MutationObserver(() => { const b = $("#tab-badge-leads"), d = $("#dock-badge-leads"); if (b && d) d.hidden = b.hidden; }).observe($("#tab-badge-leads"), { attributes: true, childList: true });

@@ -12,8 +12,8 @@ const actId = (id) => (String(id).startsWith("act_") ? id : `act_${id}`);
 
 // tk: token alternativo (ex.: token de página). Padrão: Usuário do Sistema (env) ou o login feito no painel.
 // clientId: usa o login do Facebook do próprio cliente, se ele tiver conectado.
-export async function graphGet(path, params = new URLSearchParams(), tk, clientId) {
-  const auth = await metaAuth(clientId);
+export async function graphGet(path, params = new URLSearchParams(), tk, ref) {
+  const auth = await metaAuth(ref);
   tk = tk || auth.token;
   if (auth.secret) params.set("appsecret_proof", crypto.createHmac("sha256", auth.secret).update(tk).digest("hex"));
   let url = `https://graph.facebook.com/${VERSION()}/${path}?${params}`;

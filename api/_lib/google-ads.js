@@ -40,7 +40,9 @@ const fmtId = (id) => String(id).replace(/^(\d{3})(\d{3})(\d{4})$/, "$1-$2-$3");
 const STATUS = { ENABLED: "Ativa", CANCELED: "Cancelada", SUSPENDED: "Suspensa", CLOSED: "Encerrada" };
 
 async function headers(g, loginCustomerId) {
-  const h = { Authorization: `Bearer ${await accessToken(g)}`, "developer-token": g.developerToken, "Content-Type": "application/json" };
+  // Desde set/2026 o nível de acesso é do projeto do Google Cloud; o token de desenvolvedor é opcional (ignorado).
+  const h = { Authorization: `Bearer ${await accessToken(g)}`, "Content-Type": "application/json" };
+  if (g.developerToken) h["developer-token"] = g.developerToken;
   if (digits(loginCustomerId)) h["login-customer-id"] = digits(loginCustomerId);
   return h;
 }
@@ -62,8 +64,8 @@ async function search(g, customerId, query, loginCustomerId) {
 
 // Todas as contas de anúncio que o login enxerga — diretas e as que estão sob gerentes (MCC).
 // Cada conta volta com o loginCustomerId certo (o gerente por onde ela é acessada), sem ninguém digitar ID.
-export async function listGoogleAccounts(clientId) {
-  const g = await googleAuth(clientId);
+export async function listGoogleAccounts(ref) {
+  const g = await googleAuth(ref);
   const res = await fetch(`https://googleads.googleapis.com/${await VER()}/customers:listAccessibleCustomers`, { headers: await headers(g) });
   if (!res.ok) throw new Error(`Google Ads API (${res.status}): ${await res.text()}`);
   const ids = ((await res.json()).resourceNames || []).map((r) => r.split("/")[1]);
@@ -91,8 +93,8 @@ export async function listGoogleAccounts(clientId) {
 
 const loginFor = (account, g) => account.loginCustomerId || (g.source === "agency" ? g.loginCustomerId : "");
 
-export async function fetchGoogleAds(account, from, to, clientId) {
-  const g = await googleAuth(clientId);
+export async function fetchGoogleAds(account, from, to, ref) {
+  const g = await googleAuth(ref);
   const rows = await search(g, account.customerId, `
     SELECT segments.date, campaign.id, campaign.name, campaign.status,
            metrics.cost_micros, metrics.impressions, metrics.clicks,
@@ -120,8 +122,8 @@ export async function fetchGoogleAds(account, from, to, clientId) {
 }
 
 // Prova de que está funcionando: totais dos últimos 30 dias
-export async function googleSnapshot(account, clientId) {
-  const g = await googleAuth(clientId);
+export async function googleSnapshot(account, ref) {
+  const g = await googleAuth(ref);
   const rows = await search(g, account.customerId, "SELECT metrics.cost_micros, metrics.impressions, metrics.clicks, metrics.conversions FROM customer WHERE segments.date DURING LAST_30_DAYS", loginFor(account, g));
   const t = { spend: 0, impressions: 0, clicks: 0, results: 0 };
   for (const r of rows) {
@@ -135,6 +137,7 @@ export async function googleSnapshot(account, clientId) {
 // Erros da API traduzidos para quem não é técnico
 export function explainGoogleError(e) {
   const m = String(e?.message || e);
+  if (/CLOUD_PROJECT_NOT_APPROVED_FOR_PRODUCTION|ACTION_NOT_PERMITTED|DEVELOPER_TOKEN_NOT_APPROVED|only approved for use with test accounts/i.test(m)) return "O Google ainda está liberando o acesso a contas reais (pedido de “Exploração” em análise, costuma levar minutos). Os números aparecem sozinhos assim que for aprovado.";
   if (/SCOPE_INSUFFICIENT|insufficient authentication scopes/i.test(m)) return "O login foi feito sem a permissão do Google Ads. Clique em Conectar de novo e aceite todas as permissões.";
   if (/DEVELOPER_TOKEN_NOT_APPROVED|only approved for use with test accounts/i.test(m)) return "O token de desenvolvedor da agência ainda está no nível “Conta de teste”. Peça o Acesso básico na Central de API do Google Ads (é só uma vez, para todos os clientes).";
   if (/DEVELOPER_TOKEN_INVALID|DEVELOPER_TOKEN_PROHIBITED/i.test(m)) return "O token de desenvolvedor da agência não foi aceito pelo Google. Confira em Configuração da agência.";

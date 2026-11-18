@@ -95,6 +95,29 @@ function updateSub() {
     : `${fmtFull(state.from)} — ${fmtFull(state.to)} · comparado ao período anterior`;
 }
 
+// Grades: se o último quadro ficar sozinho (ou com espaço sobrando) na última linha, ele estica até o fim
+const FILL_GRIDS = ".chans, .kpis, .split-net, .grid-2, .opps, .hkpis";
+export function fillGrids(root = document) {
+  root.querySelectorAll(FILL_GRIDS).forEach((g) => {
+    const kids = [...g.children].filter((k) => getComputedStyle(k).display !== "none");
+    kids.forEach((k) => (k.style.gridColumn = ""));
+    if (getComputedStyle(g).display !== "grid" || kids.length < 2) return;
+    const cols = getComputedStyle(g).gridTemplateColumns.split(" ").filter(Boolean);
+    if (cols.length < 2) return;
+    const last = kids[kids.length - 1];
+    const gap = parseFloat(getComputedStyle(g).columnGap) || 0;
+    const colW = parseFloat(cols[0]);
+    const free = g.getBoundingClientRect().right - last.getBoundingClientRect().right - parseFloat(getComputedStyle(g).paddingRight || 0);
+    const extra = Math.round(free / (colW + gap));
+    if (extra > 0) last.style.gridColumn = `span ${1 + extra}`;
+  });
+}
+let fillTimer;
+const refill = () => { clearTimeout(fillTimer); fillTimer = setTimeout(() => fillGrids(), 120); };
+window.addEventListener("resize", refill);
+// qualquer tela redesenhada (troca de aba, de rede, de período) reajusta as grades
+new MutationObserver(refill).observe(document.getElementById("view"), { childList: true, subtree: true });
+
 export function render() {
   const view = $("#view");
   view.classList.toggle("is-loading", state.loading > 0);
@@ -281,7 +304,6 @@ function printReport() {
     have("anuncios") ? ["anuncios", "Anúncios", ROUTES.anuncios.render] : null,
     have("social") && (c.has.instagram || c.has.facebook) ? ["social", "Social media", ROUTES.social.render] : null,
     c.has.youtube && state.youtube?.connected ? ["youtube", "YouTube", renderYouTube] : null,
-    have("oportunidades") ? ["oportunidades", "Oportunidades", ROUTES.oportunidades.render] : null,
   ].filter(Boolean);
   const box = $("#print-report") || document.body.appendChild(h("div", { id: "print-report" }));
   const range = state.from === state.to ? fmtFull(state.from) : `${fmtFull(state.from)} a ${fmtFull(state.to)}`;
@@ -520,8 +542,17 @@ async function boot() {
         onclick: () => { $("#login-email").value = a.email; $("#login-pass").value = DEMO_PASSWORD; $("#login-form").requestSubmit(); },
       }, h("strong", {}, a.label), h("small", {}, a.hint)))
     );
-    const saved = demoClientById(store.get("demo-client"), store.get("demo-viewer") || "client");
-    if (saved) { state.client = saved; showApp(); } else showLogin();
+    // só na demonstração: ?demo=<e-mail de exemplo> abre direto e &relatorio=1 monta o relatório (para conferir o PDF)
+    const qs = new URLSearchParams(location.search);
+    const quick = qs.get("demo") && demoClientByEmail(qs.get("demo"));
+    const saved = quick || demoClientById(store.get("demo-client"), store.get("demo-viewer") || "client");
+    if (saved) {
+      state.client = saved; showApp();
+      if (quick && qs.get("relatorio")) {
+        window.print = () => {};
+        const wait = setInterval(() => { if (state.metrics && state.social && state.youtube) { clearInterval(wait); printReport(); } }, 200);
+      }
+    } else showLogin();
   } else showLogin("Portal em configuração. Fale com a agência.");
 
   $("#boot").classList.add("is-done");

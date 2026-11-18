@@ -7,7 +7,12 @@ import { discover, publicLogin } from "../../_lib/ads-accounts.js";
 import { explainGoogleError } from "../../_lib/google-ads.js";
 import { redirectUri } from "../oauth.js";
 
-const explainFor = (p) => (p === "google" ? explainGoogleError : (m) => (/expired|session has expired|Error validating access token/i.test(m) ? "O acesso do Facebook expirou. Clique em Reconectar." : "A Meta não deixou listar as contas deste login. Clique em Reconectar."));
+const explainMeta = (m) => {
+  if (/API access blocked|5258005/i.test(m)) return "A Meta bloqueou o acesso do app Renowa. Abra developers.facebook.com/apps, entre no app e resolva o aviso em vermelho (verificação, uso de dados ou política). Depois clique em Reconectar.";
+  if (/expired|session has expired|Error validating access token/i.test(m)) return "O acesso do Facebook expirou. Clique em Reconectar.";
+  return "A Meta não deixou listar as contas deste login. Clique em Reconectar.";
+};
+const explainFor = (p) => (p === "google" ? explainGoogleError : explainMeta);
 
 export default async function handler(req, res) {
   try {

@@ -1037,3 +1037,6 @@ body.printing #print-report { width: 718px; max-width: none; padding-left: 0; pa
 #print-report .pr-pair { margin-bottom: 14px; }
 #print-report .pr-pair > .pr-sec__body, #print-report .pr-sec__body > * { margin-bottom: 14px; }
 @media print { body.printing #print-report { width: auto; } }
+
+/* relatório: vídeos de maior impacto = os 4 principais (o destaque + 3) */
+#print-report .yt-list > li:nth-child(n+4) { display: none !important; }

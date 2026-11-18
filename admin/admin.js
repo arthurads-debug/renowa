@@ -208,7 +208,7 @@ function renderSetup() {
   if (state.demo || !state.setup) return;
   const s = state.setup;
   if (s.store && s.google && s.meta && s.whatsapp) return;
-  const item = (ok, html) => h("li", { class: ok ? "is-ok" : "", html });
+  const item = (ok, html) => h("li", { class: ok ? "is-ok" : "" }, h("span", { html }));
   box.append(h("section", { class: "setup" },
     h("strong", {}, "Falta pouco para o painel ficar completo"),
     h("ul", {},

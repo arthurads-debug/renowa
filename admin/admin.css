@@ -377,3 +377,13 @@
 .int__check .int__steps { margin: 0; }
 .int__edit > summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--ink-3); padding: 4px 0; }
 .int__edit[open] { display: grid; gap: 12px; }
+.cx__script { display: grid; gap: 10px; padding: 12px; border-radius: 12px; background: #F0F4FF; border: 1px solid #D5DBFF; font-size: 13px; }
+.cx__script > summary { cursor: pointer; font-weight: 800; color: var(--brand); list-style: none; }
+.cx__script > summary::-webkit-details-marker { display: none; }
+.cx__script > summary::before { content: "▸ "; }
+.cx__script[open] > summary::before { content: "▾ "; }
+.cx__why { color: var(--ink-2); line-height: 1.45; }
+.cx__steps { list-style: none; counter-reset: c; display: grid; gap: 8px; padding: 0; }
+.cx__steps li { counter-increment: c; display: flex; gap: 8px; align-items: flex-start; line-height: 1.45; }
+.cx__steps li::before { content: counter(c); flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800; background: var(--brand); color: #fff; margin-top: 1px; }
+.cx__steps .link { font: inherit; font-weight: 700; }

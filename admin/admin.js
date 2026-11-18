@@ -98,6 +98,10 @@ const backend = {
     }
     return api(`/api/admin/integrations?cliente=${encodeURIComponent(clientId)}`);
   },
+  async script(clientId) {
+    if (state.demo) return { script: "// Na demonstração o script não é gerado." };
+    return api("/api/admin/integrations", { method: "POST", body: JSON.stringify({ action: "script", cliente: clientId }) });
+  },
   async invite(clientId) {
     if (state.demo) return { url: `${location.origin}/conectar/?t=demo` };
     return api("/api/admin/integrations", { method: "POST", body: JSON.stringify({ action: "convite", cliente: clientId }) });
@@ -374,6 +378,32 @@ async function sendInvite(f, btn) {
   btn.disabled = false;
 }
 
+// Plano B do Google: script colado na conta do Google Ads (não depende do token de desenvolvedor)
+async function copyScript(f, btn) {
+  btn.disabled = true;
+  try {
+    const { script } = await backend.script(f.id);
+    try { await navigator.clipboard.writeText(script); toast("Script copiado. Agora cole no Google Ads (passo 2)."); }
+    catch { prompt("Copie o script:", script); }
+    btn.textContent = "✓ Copiado — copiar de novo";
+  } catch (e) { toast(e.message); }
+  btn.disabled = false;
+}
+
+function scriptBox(f, d) {
+  const sc = d.script;
+  const when = sc?.updatedAt ? new Date(sc.updatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
+  return h("details", { class: "cx__script", open: (d.apiBlocked && !sc) || undefined },
+    h("summary", {}, sc ? `✓ Script do Google Ads ativo · último envio ${when}` : d.apiBlocked ? "Ver os números agora, sem esperar o Google (2 minutos)" : "Alternativa: ligar pelo script do Google Ads"),
+    d.apiBlocked && !sc ? h("p", { class: "cx__why" }, "O Google ainda não liberou o token da agência para contas reais. Enquanto isso, este script, colado uma vez na conta do cliente, manda os números para o painel a cada hora.") : null,
+    h("ol", { class: "cx__steps" },
+      h("li", {}, h("span", {}, h("button", { type: "button", class: "btn btn--primary btn--sm", onclick: (e) => copyScript(f, e.currentTarget) }, "Copiar script"))),
+      h("li", {}, h("span", {}, "Abra o ", h("a", { class: "link", href: "https://ads.google.com/aw/bulk/scripts", target: "_blank", rel: "noopener" }, "Google Ads → Scripts"), " já na conta deste cliente e clique no ", h("b", {}, "+"), " → ", h("b", {}, "Novo script"), ".")),
+      h("li", {}, h("span", {}, "Apague o que estiver escrito, ", h("b", {}, "cole"), " o script e clique em ", h("b", {}, "Autorizar"), " (aceite com o seu Google).")),
+      h("li", {}, h("span", {}, "Clique em ", h("b", {}, "Salvar"), " e depois em ", h("b", {}, "Executar"), ". Na lista de scripts, em ", h("b", {}, "Frequência"), ", escolha ", h("b", {}, "De hora em hora"), ".")),
+      h("li", {}, h("span", {}, "Volte aqui e clique em ", h("button", { type: "button", class: "link", onclick: () => loadCx(f.id) }, "verificar"), ". Os números dos últimos 30 dias aparecem neste cartão."))));
+}
+
 function cxCard(f, provider) {
   const cx = state.cx;
   const d = cx?.data?.[provider] || {};
@@ -394,6 +424,7 @@ function cxCard(f, provider) {
     status,
     msg ? h("p", { class: `cx__test ${msg.err ? "is-err" : "is-ok"}`, role: "status" }, msg.err || msg.ok) : null,
     test,
+    provider === "google" && ready && !cx?.loading && (d.apiBlocked || d.script || (d.test && !d.test.ok)) ? scriptBox(f, d) : null,
     h("div", { class: "cx__btns" },
       h("a", { class: `btn ${d.own ? "btn--ghost" : "btn--primary"} btn--sm`, href, "aria-disabled": ready === false ? "true" : null,
         onclick: (e) => { if (state.demo) { e.preventDefault(); toast("Na demonstração o login não abre."); } } }, d.own ? "Conectar de novo" : `Conectar ${provider === "google" ? "Google" : "Facebook"}`),

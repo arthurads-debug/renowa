@@ -6,6 +6,7 @@ import { findById } from "../_lib/clients.js";
 import { getSession } from "../_lib/session.js";
 import { cached } from "../_lib/cache.js";
 import { fetchGoogleAds } from "../_lib/google-ads.js";
+import { readScriptData, scriptRows } from "../_lib/ads-script.js";
 import { fetchMetaAds, fetchMetaSummary } from "../_lib/meta-ads.js";
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -26,8 +27,16 @@ export default async function handler(req, res) {
     if (!(days >= 0 && days <= MAX_DAYS)) return json(res, 400, { error: `Período deve ter entre 1 e ${MAX_DAYS} dias.` });
 
     const jobs = {};
-    if (client.googleAds?.customerId) {
-      jobs.google = cached(`g:${client.id}:${client.googleAds.customerId}:${from}:${to}`, () => fetchGoogleAds(client.googleAds, from, to, client.id));
+    // Google: API oficial; se ela recusar (token ainda em teste, por exemplo), usa o que o script da conta enviou
+    const script = await readScriptData(client.id);
+    if (client.googleAds?.customerId || script) {
+      jobs.google = (async () => {
+        if (client.googleAds?.customerId) {
+          try { return await cached(`g:${client.id}:${client.googleAds.customerId}:${from}:${to}`, () => fetchGoogleAds(client.googleAds, from, to, client.id)); }
+          catch (e) { if (!script) throw e; console.warn(`[metrics] google API recusou para ${client.id}; usando o script`); }
+        }
+        return scriptRows(script, from, to);
+      })();
     }
     if (client.metaAds?.adAccountId) {
       jobs.meta = cached(`m:${client.id}:${client.metaAds.adAccountId}:${JSON.stringify(client.metaAds.resultActionTypes || [])}:${from}:${to}`, () => fetchMetaAds(client.metaAds, from, to, client.id));

@@ -303,3 +303,4 @@ body { background: var(--bg); }
 .switch input:checked + span::after { transform: translateX(16px); }
 .switch input:focus-visible + span { outline: 3px solid rgba(30, 18, 234, .35); outline-offset: 2px; }
 .opt .tag { margin-left: auto; }
+.login--admin .login__r { display: none; }

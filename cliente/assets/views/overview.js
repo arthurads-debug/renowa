@@ -3,6 +3,12 @@ import { h, icon, int, money, pct, safeDiv, today, fmtMonth, cap, daysBetween } 
 import { context, kpisFor, narrative, PROFILE_TEXT } from "../model.js";
 import { card, kpiGrid, statusChip, loadingState, dayLabel, postThumb, accountsStrip } from "../components.js";
 import { funnelCard } from "../funnel3d.js";
+import { mixFor } from "../mix.js";
+import { renderChart, observe } from "../charts.js";
+import { fmtDay, fmtDayLong, dec } from "../util.js";
+
+const PAID = "#1E12EA", ORG = "#0B0B14";
+const ui = { mix: "acc" };
 
 export function renderOverview(view, state, helpers) {
   if (!state.metrics) { view.replaceChildren(loadingState()); return; }
@@ -39,24 +45,6 @@ export function renderOverview(view, state, helpers) {
         h("span", { class: "agenda__title" }, p.title, h("small", {}, `${p.format} · ${p.network}`)),
         statusChip(p.status, true))))
     : h("p", { class: "muted" }, state.content ? "Nenhuma publicação programada." : "Carregando calendário…")) : null;
-
-  // ---------- Redes sociais (Instagram + Facebook juntos) ----------
-  let socialCard = null;
-  const s = state.social;
-  const nets = s ? ["instagram", "facebook"].filter((n) => s[n]?.connected && s[n].posts?.length) : [];
-  if (nets.length) {
-    const posts = nets.flatMap((n) => s[n].posts);
-    const reachSum = posts.reduce((a, p) => a + p.reach, 0);
-    const inter = posts.reduce((a, p) => a + p.interactions, 0);
-    const best = [...posts].sort((a, b) => b.reach - a.reach)[0];
-    const names = nets.map((n) => (n === "instagram" ? `@${s[n].username}` : s[n].username)).join(" · ");
-    socialCard = card({ title: "Redes sociais no período", sub: names, tools: h("a", { class: "link", href: "#social" }, "Ver posts") },
-      h("div", { class: "mini-stats" },
-        stat(int(posts.length), nets.length > 1 ? "posts (Instagram + Facebook)" : "posts publicados"),
-        stat(int(reachSum, true), "contas alcançadas (soma dos posts)"),
-        stat(pct(safeDiv(inter, reachSum), 1), "taxa de engajamento")),
-      h("div", { class: "best" }, postThumb(best), h("div", {}, h("p", { class: "mono muted" }, `Post de maior alcance · ${best.network === "facebook" ? "Facebook" : "Instagram"}`), h("p", { class: "best__title" }, best.caption), h("p", { class: "muted" }, `${int(best.reach)} contas alcançadas · ${int(best.interactions)} interações`))));
-  }
 
   // ---------- Comentário + relatório ----------
   const report = state.content?.reports?.[0];
@@ -95,15 +83,98 @@ export function renderOverview(view, state, helpers) {
   const fkey = stages.map((s) => Math.round(s.value)).join("|");
   if (view._funnelKey !== fkey || !view._funnel) { view._funnelKey = fkey; view._funnel = funnelCard(stages); }
 
+  const mix = mixFor(state);
+  const mixCard = mixSection(mix, state);
+  const channels = channelsSection(state, ctx);
+  const adsOn = c.platforms.google || c.platforms.meta;
+
   view.replaceChildren(...[
     accountsStrip(c),
     hero,
-    kpiGrid(kpis, { partial: false }),
-    view._funnel,
+    mixCard,
+    channels,
+    adsOn ? h("h2", { class: "sec-title" }, h("span", { class: "dot dot--paid" }), "Anúncios em detalhe") : null,
+    adsOn ? kpiGrid(kpis, { partial: false }) : null,
+    adsOn ? view._funnel : null,
     salesCta,
-    h("div", { class: "grid-2" }, [nextCard, noteCard, socialCard].filter(Boolean)),
-    h("p", { class: "fineprint" }, footnote(c)),
+    h("div", { class: "grid-2" }, [nextCard, noteCard].filter(Boolean)),
+    h("p", { class: "fineprint" }, footnote(c), " Pago x orgânico: visualizações pagas são impressões dos anúncios e views do YouTube vindas de anúncios; orgânicas são o alcance dos posts do Instagram e do Facebook e as demais views do YouTube."),
   ].filter(Boolean));
+  if (mixCard?._draw) { mixCard._draw(); observe(mixCard._chart); }
+  requestAnimationFrame(() => view.querySelectorAll(".mix__bar span, .mix__cmp i").forEach((el) => el.classList.add("is-in")));
+}
+
+/* ---------- Pago x orgânico ---------- */
+function mixSection(mix, state) {
+  const total = mix.paid.views + mix.organic.views;
+  if (!total) return null;
+  const sp = mix.paid.views / total;
+  const big = (cls, label, v, sub) => h("div", { class: `mix__big mix__big--${cls}` }, h("p", { class: "mix__lbl" }, h("span", { class: `dot dot--${cls}` }), label), h("p", { class: "mix__num" }, int(v)), h("p", { class: "mix__sub" }, sub));
+  const cmp = (label, a, b, fmt = int) => {
+    const m = Math.max(1, a, b);
+    return h("li", {}, h("span", { class: "mix__cmp-l" }, label),
+      h("div", { class: "mix__cmp" }, h("i", { class: "is-paid", style: { "--w": `${(a / m) * 100}%` } }), h("b", {}, fmt(a))),
+      h("div", { class: "mix__cmp" }, h("i", { class: "is-org", style: { "--w": `${(b / m) * 100}%` } }), h("b", {}, fmt(b))));
+  };
+  const chart = h("div", { class: "chart" });
+  const draw = () => {
+    let acc = [0, 0];
+    const paid = ui.mix === "day" ? mix.series.map((d) => d.paid) : mix.series.map((d) => (acc[0] += d.paid));
+    const org = ui.mix === "day" ? mix.series.map((d) => d.organic) : mix.series.map((d) => (acc[1] += d.organic));
+    renderChart(chart, { type: ui.mix === "day" ? "bars" : "lines", labels: mix.dates, height: 240,
+      series: [{ label: "Pago", color: PAID, values: paid }, { label: "Orgânico", color: ORG, values: org }],
+      fmt: (v) => int(v), fmtAxis: (v) => int(v, true), fmtDate: fmtDay, fmtDateLong: fmtDayLong,
+      ariaLabel: ui.mix === "day" ? "Visualizações pagas e orgânicas por dia" : "Visualizações acumuladas no período" });
+  };
+  const seg = h("div", { class: "seg", role: "radiogroup", "aria-label": "Gráfico" }, [["acc", "Crescimento acumulado"], ["day", "Por dia"]].map(([v, l]) =>
+    h("button", { role: "radio", "aria-checked": String(ui.mix === v), onclick: (e) => { ui.mix = v; e.currentTarget.parentElement.querySelectorAll("button").forEach((b) => b.setAttribute("aria-checked", String(b === e.currentTarget))); draw(); } }, l)));
+  const growth = mix.prevPaid ? (mix.paid.views - mix.prevPaid) / mix.prevPaid : null;
+  const box = card({ title: "Pago e orgânico", sub: "Quantas vezes as pessoas viram sua marca — pelos anúncios e pelo conteúdo publicado", cls: "mix" },
+    h("div", { class: "mix__top" },
+      big("paid", "Pelos anúncios", mix.paid.views, `${pct(sp, 0)} do total${growth != null ? (Math.abs(growth) < 0.005 ? " · estável vs. período anterior" : ` · ${growth > 0 ? "+" : ""}${dec(growth * 100, 0)}% vs. período anterior`) : ""}`),
+      big("org", "Pelo conteúdo orgânico", mix.organic.views, `${pct(1 - sp, 0)} do total · sem custo de mídia`),
+      h("div", { class: "mix__total" }, h("p", {}, "Total no período"), h("strong", {}, int(total, true)), h("small", {}, "visualizações"))),
+    h("div", { class: "mix__bar", role: "img", "aria-label": `${pct(sp, 0)} pago, ${pct(1 - sp, 0)} orgânico` }, h("span", { class: "is-paid", style: { "--w": `${sp * 100}%` } }), h("span", { class: "is-org", style: { "--w": `${(1 - sp) * 100}%` } })),
+    h("div", { class: "mix__grid" },
+      h("ul", { class: "mix__rows" },
+        h("li", { class: "mix__head" }, h("span"), h("span", {}, h("span", { class: "dot dot--paid" }), "Pago"), h("span", {}, h("span", { class: "dot dot--org" }), "Orgânico")),
+        cmp("Visualizações", mix.paid.views, mix.organic.views, (v) => int(v, true)),
+        cmp("Interações", mix.paid.interactions, mix.organic.interactions, (v) => int(v, true)),
+        mix.paid.clicks ? h("li", { class: "mix__note" }, `${int(mix.paid.clicks)} cliques nos anúncios · ${money(mix.paid.spend)} investidos`) : null),
+      h("div", { class: "mix__chart" }, h("div", { class: "mix__charthead" }, seg), chart)));
+  box._draw = draw; box._chart = chart;
+  return box;
+}
+
+/* ---------- Seus canais (um cartão por canal conectado) ---------- */
+function channelsSection(state, ctx) {
+  const c = state.client;
+  const rows = state.metrics?.rows || [];
+  const s = state.social || {};
+  const y = state.youtube;
+  const cards = [];
+  const tile = (net, name, sub, nums, href, kind) => h("a", { class: `chan chan--${net}`, href },
+    h("header", {}, h("span", { class: `chan__ico chan__ico--${net}`, "aria-hidden": "true" }), h("div", {}, h("strong", {}, name), h("small", {}, sub)), h("span", { class: `chan__kind chan__kind--${kind}` }, kind === "paid" ? "Pago" : kind === "mix" ? "Pago + orgânico" : "Orgânico")),
+    h("dl", {}, nums.map(([k, v]) => h("div", {}, h("dt", {}, k), h("dd", {}, v)))),
+    h("span", { class: "chan__more" }, "Ver detalhes →"));
+  const tot = (p) => rows.filter((r) => r.platform === p).reduce((t, r) => ({ spend: t.spend + r.spend, imp: t.imp + r.impressions, clicks: t.clicks + r.clicks, res: t.res + r.results }), { spend: 0, imp: 0, clicks: 0, res: 0 });
+  if (c.platforms.google) { const t = tot("google"); cards.push(tile("google", "Google Ads", "Pesquisa, YouTube e Display", [["Investido", money(t.spend)], ["Impressões", int(t.imp, true)], ["Cliques", int(t.clicks)], [c.resultLabel || "Resultados", int(t.res)]], "#anuncios", "paid")); }
+  if (c.platforms.meta) { const t = tot("meta"); const reach = ctx.reach?.current?.reach; cards.push(tile("meta", "Meta Ads", "Facebook e Instagram", [["Investido", money(t.spend)], reach ? ["Pessoas alcançadas", int(reach, true)] : ["Impressões", int(t.imp, true)], ["Cliques", int(t.clicks)], [c.resultLabel || "Resultados", int(t.res)]], "#anuncios", "paid")); }
+  for (const n of ["instagram", "facebook"]) {
+    const d = s[n];
+    if (!d?.connected || d.error) continue;
+    const posts = (d.posts || []).filter((p) => String(p.date).slice(0, 10) >= state.from);
+    const reach = posts.reduce((a, p) => a + p.reach, 0), inter = posts.reduce((a, p) => a + p.interactions, 0);
+    cards.push(tile(n, n === "instagram" ? "Instagram" : "Facebook", n === "instagram" ? `@${d.username || ""}` : d.username || "Página",
+      [["Seguidores", int(d.followers)], ["Posts", int(posts.length)], ["Alcance dos posts", int(reach, true)], ["Engajamento", reach ? pct(safeDiv(inter, reach), 1) : "—"]], "#social", "org"));
+  }
+  if (y?.connected && y.channel) {
+    const cur = y.current;
+    cards.push(tile("youtube", "YouTube", y.channel.handle || y.channel.name,
+      [["Inscritos", int(y.channel.subscribers)], ["Visualizações", cur ? int(cur.views, true) : "—"], ["Horas assistidas", cur ? int(cur.minutes / 60) : "—"], ["Novos inscritos", cur ? `${cur.gained - cur.lost >= 0 ? "+" : ""}${int(cur.gained - cur.lost)}` : "—"]], "#youtube", y.split && cur?.paidViews ? "mix" : "org"));
+  }
+  if (!cards.length) return null;
+  return h("section", { class: "chans-wrap" }, h("h2", { class: "sec-title" }, "Seus canais"), h("div", { class: "chans" }, cards));
 }
 
 const stat = (v, l) => h("div", { class: "mini-stat" }, h("strong", {}, v), h("span", {}, l));

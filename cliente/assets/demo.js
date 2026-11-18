@@ -315,20 +315,20 @@ export function demoYouTube(client, from, to, prevFrom, prevTo) {
   const daily = days.map((date, i) => {
     const r = seeded(`yt:${client.id}:${date}`)();
     const views = Math.round(base * (0.7 + r * 0.8) * (1 + Math.sin(i / 3) * 0.15));
-    return { date, views, minutes: Math.round(views * (2.4 + r)), gained: Math.round(views * 0.006 + r * 4), lost: Math.round(r * 3), likes: Math.round(views * 0.045), comments: Math.round(views * 0.006), shares: Math.round(views * 0.004) };
+    return { date, views, paidViews: Math.round(views * (0.45 + r * 0.25)), minutes: Math.round(views * (2.4 + r)), gained: Math.round(views * 0.006 + r * 4), lost: Math.round(r * 3), likes: Math.round(views * 0.045), comments: Math.round(views * 0.006), shares: Math.round(views * 0.004) };
   });
   const tot = (rows, k = 1) => ({ views: rows.reduce((s, r) => s + r.views, 0) * k, minutes: rows.reduce((s, r) => s + r.minutes, 0) * k, avgDuration: 168, avgPercent: 46.3, gained: rows.reduce((s, r) => s + r.gained, 0) * k, lost: rows.reduce((s, r) => s + r.lost, 0) * k, likes: rows.reduce((s, r) => s + r.likes, 0) * k, comments: rows.reduce((s, r) => s + r.comments, 0) * k, shares: rows.reduce((s, r) => s + r.shares, 0) * k });
-  const cur = tot(daily);
+  const cur = { ...tot(daily), paidViews: daily.reduce((s, r) => s + r.paidViews, 0) };
   const prev = Object.fromEntries(Object.entries(cur).map(([k, v]) => [k, Math.round(v * 0.82)]));
   const totalViews = cur.views;
   const top = YT_TITLES[kit].map((title, i) => {
     const share = [0.27, 0.18, 0.13, 0.1, 0.08, 0.06, 0.05, 0.04][i];
     const views = Math.round(totalViews * share);
     const short = i % 3 === 2;
-    return { id: `demo${i}`, title, publishedAt: iso(addDays(to, -(i * 4 + 2))), thumbnail: null, duration: short ? 42 : 240 + i * 50, short, views, minutes: Math.round(views * (short ? 0.6 : 3.1)), avgDuration: short ? 36 : 150 + i * 10, avgPercent: short ? 82 - i : 52 - i * 2, likes: Math.round(views * (0.05 + rnd() * 0.02)), comments: Math.round(views * 0.006), shares: Math.round(views * 0.005), gained: Math.round(views * 0.008) };
+    return { id: `demo${i}`, paidViews: Math.round(views * [0.7, 0.15, 0.6, 0.05, 0.5, 0.1, 0.4, 0.2][i]), title, publishedAt: iso(addDays(to, -(i * 4 + 2))), thumbnail: null, duration: short ? 42 : 240 + i * 50, short, views, minutes: Math.round(views * (short ? 0.6 : 3.1)), avgDuration: short ? 36 : 150 + i * 10, avgPercent: short ? 82 - i : 52 - i * 2, likes: Math.round(views * (0.05 + rnd() * 0.02)), comments: Math.round(views * 0.006), shares: Math.round(views * 0.005), gained: Math.round(views * 0.008) };
   });
   return {
-    connected: true, analytics: true,
+    connected: true, analytics: true, split: true,
     channel: { id: "UCdemo", name: client.name, handle: `@${kit}oficial`, thumbnail: null, banner: null, subscribers: { prefeitura: 28400, loja: 6100, ecommerce: 54200 }[kit], views: { prefeitura: 3120000, loja: 640000, ecommerce: 8900000 }[kit], videos: { prefeitura: 412, loja: 138, ecommerce: 520 }[kit], since: "2019-03-11T00:00:00Z" },
     current: cur, previous: prevFrom ? prev : null, daily, top,
     traffic: [["YT_SEARCH", 0.31], ["SUGGESTED", 0.27], ["BROWSE", 0.16], ["SHORTS", 0.12], ["EXT_URL", 0.07], ["SUBSCRIBER", 0.04], ["PLAYLIST", 0.03]].map(([source, f]) => ({ source, views: Math.round(totalViews * f), minutes: 0 })),

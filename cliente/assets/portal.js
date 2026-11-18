@@ -8,12 +8,13 @@ import { renderOverview } from "./views/overview.js";
 import { renderAds } from "./views/ads.js";
 import { renderSocial } from "./views/social.js";
 import { renderYouTube } from "./views/youtube.js";
+import { renderOpportunities } from "./views/opportunities.js";
 import { renderCalendar } from "./views/calendar.js";
 import { renderHistory } from "./views/history.js";
 
 const CONFIG = {
   brand: "Renowa",
-  refreshSeconds: 30,
+  refreshSeconds: 0, // sem atualização automática na tela (ver startLive)
   // Sem API (ex.: servidor local estático) o portal abre em modo demonstração. false desliga de vez.
   allowDemo: true,
 };
@@ -48,6 +49,7 @@ const ROUTES = {
   anuncios: { label: "Anúncios", icon: "ads", period: true, render: renderAds, title: () => "Anúncios", kicker: "Tráfego pago · Google e Meta", show: (c) => c.platforms.google || c.platforms.meta },
   social: { label: "Social media", icon: "social", period: true, render: renderSocial, title: () => "Social media", kicker: "Instagram e Facebook · conteúdo orgânico", show: (c) => c.has.instagram || c.has.facebook || c.has.calendar },
   youtube: { label: "YouTube", icon: "youtube", period: true, render: renderYouTube, title: () => "YouTube", kicker: "Canal · vídeos, audiência e crescimento", show: (c) => c.has.youtube },
+  oportunidades: { label: "Oportunidades", icon: "rocket", period: true, render: renderOpportunities, title: () => "Oportunidades", kicker: "Conteúdo orgânico que merece virar anúncio", show: (c) => c.has.instagram || c.has.facebook || c.has.youtube },
   calendario: { label: "Calendário", icon: "calendar", period: false, render: renderCalendar, title: () => "Calendário editorial", kicker: "O que vamos publicar", show: (c) => c.has.calendar },
   historico: { label: "Histórico", icon: "history", period: false, render: renderHistory, title: () => "Histórico", kicker: "Últimos 12 meses" },
 };
@@ -190,7 +192,7 @@ function loadPeriod() {
     const { from, to, prevFrom } = state;
     const ytFrom = from;
     state.source.youtube?.(from, to, state.prevFrom, state.prevTo)
-      .then((y) => { if (ytFrom === state.from) { state.youtube = y; if (state.route === "youtube") render(); } })
+      .then((y) => { if (ytFrom === state.from) { state.youtube = y; if (["youtube", "oportunidades", "resumo"].includes(state.route)) render(); } })
       .catch(() => { state.youtube = { connected: true, error: "Não foi possível consultar o YouTube agora." }; if (state.route === "youtube") render(); });
     const [m, s] = await Promise.all([
       state.source.metrics(prevFrom, to, from),
@@ -231,18 +233,38 @@ function refreshAll(silent) {
 }
 
 /* ---------- Ao vivo ---------- */
+// Atualização em momentos estratégicos: nunca enquanto o cliente está lendo.
+// Só ao voltar para a aba depois de um tempo fora (15 min) ou quando ele clica em Atualizar.
+const STALE_MS = 15 * 60_000;
 function startLive() {
   stopLive();
-  state.timer = setInterval(() => document.visibilityState === "visible" && refreshAll(true), CONFIG.refreshSeconds * 1000);
+  state.onVisible = () => {
+    if (document.visibilityState === "hidden") { state.hiddenAt = Date.now(); return; }
+    if (state.hiddenAt && Date.now() - (state.lastUpdate || 0) > STALE_MS) refreshAll(true);
+    state.hiddenAt = 0;
+  };
+  document.addEventListener("visibilitychange", state.onVisible);
+  // só o texto do indicador muda com o tempo (nada na tela é redesenhado)
+  state.timer = setInterval(updateLiveText, 60_000);
 }
-function stopLive() { clearInterval(state.timer); state.timer = null; }
+function stopLive() {
+  clearInterval(state.timer); state.timer = null;
+  if (state.onVisible) document.removeEventListener("visibilitychange", state.onVisible);
+  state.onVisible = null;
+}
+function updateLiveText() {
+  if (!state.lastUpdate || !$("#live").classList.contains("is-on")) return;
+  const at = new Date(state.lastUpdate).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const old = Date.now() - state.lastUpdate > STALE_MS;
+  $("#live").classList.toggle("is-stale", old);
+  $("#live-text").textContent = old ? `Dados das ${at} · clique em atualizar para ver os mais recentes` : `Atualizado às ${at}`;
+}
 function setLive(ok, message) {
   const live = $("#live");
   live.classList.toggle("is-on", ok);
   live.classList.toggle("is-error", !ok);
-  $("#live-text").textContent = ok
-    ? `Ao vivo · atualizado às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
-    : message || "Sem conexão";
+  if (ok) { state.lastUpdate = Date.now(); updateLiveText(); }
+  else $("#live-text").textContent = message || "Sem conexão";
 }
 $("#btn-refresh").addEventListener("click", () => refreshAll());
 $("#btn-print").addEventListener("click", () => window.print());

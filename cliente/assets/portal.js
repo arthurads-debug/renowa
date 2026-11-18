@@ -301,7 +301,11 @@ function printReport() {
     try { fn(body, state, helpers); } catch (e) { console.error("[relatório]", key, e); body.replaceChildren(h("p", { class: "muted" }, "Não foi possível montar esta seção.")); }
   }
   state.platform = keep.platform;
-  const done = () => { document.body.classList.remove("printing"); box.replaceChildren(); window.removeEventListener("afterprint", done); };
+  // nome do arquivo PDF = título da página na hora de imprimir
+  const oldTitle = document.title;
+  const d = new Date();
+  document.title = `Relatório Renowa (${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()})`;
+  const done = () => { document.title = oldTitle; document.body.classList.remove("printing"); box.replaceChildren(); window.removeEventListener("afterprint", done); };
   window.addEventListener("afterprint", done);
   // espera imagens e animações das barras assentarem antes de abrir a janela de impressão
   setTimeout(() => { box.querySelectorAll(".mix__bar span, .mix__cmp i, .yt-bars span, .yt-age__bar span, .yt-ret i").forEach((el) => el.classList.add("is-in")); window.print(); }, 700);

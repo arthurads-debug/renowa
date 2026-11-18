@@ -45,7 +45,10 @@ const FORMAT_ICON = { Short: "▶", Reels: "▶", "Vídeo": "▶", Carrossel: "�
 export function postThumb(p) {
   const fmt = h("span", { class: "thumb__fmt" }, `${FORMAT_ICON[p.format] || "▣"} ${p.format}`);
   if (p.thumbnail) {
-    return h("div", { class: "thumb" }, h("img", { src: p.thumbnail, alt: "", loading: "lazy", referrerpolicy: "no-referrer" }), fmt);
+    // se a imagem não carregar (link expirado, rede), entra a capa de reserva com o título
+    const box = h("div", { class: "thumb" }, h("img", { src: p.thumbnail, alt: "", loading: "lazy", decoding: "async", referrerpolicy: "no-referrer",
+      onerror: () => { box.className = `thumb thumb--art thumb--${(p.theme ?? 0) % 4}`; box.replaceChildren(h("span", { class: "thumb__title" }, p.caption || p.title || ""), fmt); } }), fmt);
+    return box;
   }
   return h("div", { class: `thumb thumb--art thumb--${(p.theme ?? 0) % 4}` }, h("span", { class: "thumb__title" }, p.caption || p.title || ""), fmt);
 }

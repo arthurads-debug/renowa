@@ -117,7 +117,7 @@ export function renderSocial(view, state) {
       card({ title: "Melhores posts do período", sub: "Pelo número de contas alcançadas" },
         h("ol", { class: "top-posts" }, top.map((p, i) => h("li", {},
           h("span", { class: "top-posts__n" }, String(i + 1)), postThumb(p),
-          h("div", {}, h("p", { class: "top-posts__title" }, p.caption || "(sem legenda)"),
+          h("div", {}, h("p", { class: "top-posts__title", title: p.caption || "" }, (p.caption || "(sem legenda)").replace(/\s+/g, " ").slice(0, 110)),
             h("p", { class: "muted" }, `${NET_NAME[p.network]} · ${dayLabel(p.date.slice(0, 10))} · ${int(p.reach)} ${p.network === "youtube" ? "visualizações" : "alcançadas"} · ${int(p.interactions)} interações`)))))),
       card({ title: "O que funciona melhor", sub: "Alcance médio por formato" },
         h("ul", { class: "formats" }, fmtRows.map(([name, f]) => h("li", {},

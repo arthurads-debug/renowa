@@ -329,8 +329,16 @@ function printReport() {
   document.title = `Relatório Renowa (${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()})`;
   const done = () => { document.title = oldTitle; document.body.classList.remove("printing"); box.replaceChildren(); window.removeEventListener("afterprint", done); };
   window.addEventListener("afterprint", done);
-  // espera imagens e animações das barras assentarem antes de abrir a janela de impressão
-  setTimeout(() => { box.querySelectorAll(".mix__bar span, .mix__cmp i, .yt-bars span, .yt-age__bar span, .yt-ret i").forEach((el) => el.classList.add("is-in")); window.print(); }, 700);
+  // capas dos posts e vídeos: carrega todas agora (sem esperar rolar a tela) e só imprime quando terminarem
+  const imgs = [...box.querySelectorAll("img")];
+  imgs.forEach((img) => { img.loading = "eager"; });
+  const loaded = Promise.all(imgs.map((img) => (img.complete ? Promise.resolve() : new Promise((ok) => { img.addEventListener("load", ok, { once: true }); img.addEventListener("error", ok, { once: true }); }))));
+  const timeout = new Promise((ok) => setTimeout(ok, 8000));
+  toast("Preparando o relatório…");
+  Promise.race([loaded, timeout]).then(() => setTimeout(() => {
+    box.querySelectorAll(".mix__bar span, .mix__cmp i, .yt-bars span, .yt-age__bar span, .yt-ret i").forEach((el) => el.classList.add("is-in"));
+    window.print();
+  }, 300));
 }
 
 /* =========================================================

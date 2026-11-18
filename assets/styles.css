@@ -71,7 +71,7 @@ html.reduce [data-reveal], html.reduce [data-hero-fade] { opacity: 1; transform:
 
 /* ---------- Logo ---------- */
 .logo { height: 100%; width: auto; overflow: visible; }
-.logo__icon { fill: var(--brand); }
+.logo__icon { fill: #FA4802; }
 .logo__word { fill: currentColor; }
 
 /* ---------- Botões ---------- */

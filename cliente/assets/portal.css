@@ -59,7 +59,7 @@ svg { display: block; }
 /* ---------- Marca ---------- */
 .brand { display: inline-flex; align-items: center; height: 24px; color: #fff; }
 .brand .logo { height: 100%; width: auto; overflow: visible; }
-.logo__icon { fill: var(--brand); }
+.logo__icon { fill: var(--accent); }
 .logo__word { fill: currentColor; }
 .brand--dark { color: var(--ink); }
 
@@ -85,7 +85,7 @@ svg { display: block; }
 
 /* ---------- Boot / toast ---------- */
 .boot { position: fixed; inset: 0; display: grid; place-items: center; background: #000; z-index: 80; transition: opacity .4s; }
-.boot svg { width: 72px; fill: var(--brand); animation: bootPulse 1.4s var(--ease) infinite; }
+.boot svg { width: 72px; fill: var(--accent); animation: bootPulse 1.4s var(--ease) infinite; }
 @keyframes bootPulse { 0%, 100% { opacity: .35; transform: scale(.94); } 50% { opacity: 1; transform: scale(1); } }
 .boot.is-done { opacity: 0; pointer-events: none; }
 .toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 70; max-width: min(92vw, 480px); padding: 12px 18px; border-radius: 14px; background: var(--ink); color: #fff; font-size: 14px; box-shadow: 0 20px 40px -16px rgba(10,15,44,.5); }
@@ -1023,3 +1023,12 @@ body.printing #print-report { display: block; max-width: 1100px; margin: 0 auto;
 #print-report .card { break-inside: auto; page-break-inside: auto; }
 #print-report .card:has(> .card__head + .chart), #print-report .note-card, #print-report .kpi, #print-report .chan, #print-report .net-card, #print-report .post { break-inside: avoid; page-break-inside: avoid; }
 #print-report .yt-age, #print-report .yt-bars, #print-report .f3d__labels, #print-report .mix__grid > .mix__rows { break-inside: avoid; page-break-inside: avoid; }
+/* melhores posts: legenda curta (2 linhas) para os quadros ficarem compactos e alinhados */
+.top-posts li { align-items: start; }
+.top-posts li > div { min-width: 0; }
+.top-posts__title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.top-posts li .muted { font-size: 12.5px; }
+.top-posts .thumb { width: 72px; height: 72px; aspect-ratio: 1; }
+#print-report .post__caption { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+#print-report .hero-card { background: #1E12EA !important; }
+#print-report *:not(.hl) { box-shadow: none !important; text-shadow: none !important; filter: none !important; }

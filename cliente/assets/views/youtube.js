@@ -25,7 +25,7 @@ const eng = (v) => (v.likes || 0) + (v.comments || 0) + (v.shares || 0);
 
 function thumb(v, cls = "yt-thumb") {
   const box = h("div", { class: cls });
-  if (v.thumbnail) box.append(h("img", { src: v.thumbnail, alt: "", loading: "lazy", referrerpolicy: "no-referrer" }));
+  if (v.thumbnail) box.append(h("img", { src: v.thumbnail, alt: "", loading: "lazy", decoding: "async", referrerpolicy: "no-referrer", onerror: (e) => { e.currentTarget.replaceWith(h("span", { class: "yt-thumb__ph", "aria-hidden": "true" })); } }));
   else box.append(h("span", { class: "yt-thumb__ph", "aria-hidden": "true" }));
   box.append(h("span", { class: "yt-thumb__play", "aria-hidden": "true" }), v.duration ? h("span", { class: "yt-thumb__dur" }, v.short ? "Short" : mmss(v.duration)) : null);
   return box;

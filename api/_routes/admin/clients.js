@@ -38,7 +38,7 @@ function clean(input, existing) {
   };
 
   if (input.password) {
-    if (String(input.password).length < 10) throw bad("A senha precisa ter pelo menos 10 caracteres.");
+    if (String(input.password).length < 4) throw bad("A senha precisa ter pelo menos 4 caracteres.");
     c.passwordHash = hashPassword(input.password);
   }
   if (!c.passwordHash) throw bad("Defina uma senha de acesso para o cliente.");

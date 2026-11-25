@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     if (!company) return json(res, 400, { error: "Informe o nome da empresa." });
     if (!contactName) return json(res, 400, { error: "Informe o seu nome." });
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return json(res, 400, { error: "Informe um e-mail válido." });
-    if (password.length < 8) return json(res, 400, { error: "A senha precisa ter pelo menos 8 caracteres." });
+    if (password.length < 4) return json(res, 400, { error: "A senha precisa ter pelo menos 4 caracteres." });
 
     const list = await loadClients();
     // Mesmo retorno para e-mail já cadastrado: não revela quem já tem conta

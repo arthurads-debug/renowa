@@ -430,7 +430,7 @@ function renderEditor(keepScroll) {
         fld("E-mail de acesso *", inp("ed-email", f.email, { type: "email", autocomplete: "off", oninput: set("email") }), "O cliente entra no relatório com este e-mail."),
         fld("Usuário de acesso", inp("ed-user", f.username || "", { autocomplete: "off", autocapitalize: "none", spellcheck: "false", oninput: set("username"), placeholder: "Ex.: nossaparagominas" }), "Opcional. O cliente pode entrar com o usuário no lugar do e-mail.")),
       h("div", { class: "row" },
-        fld(f.isNew ? "Senha de acesso *" : "Nova senha", inp("ed-pass", "", { type: "text", autocomplete: "new-password", oninput: set("password"), placeholder: f.isNew ? "Mínimo de 10 caracteres" : "Deixe em branco para manter a atual" }),
+        fld(f.isNew ? "Senha de acesso *" : "Nova senha", inp("ed-pass", "", { type: "text", autocomplete: "new-password", oninput: set("password"), placeholder: f.isNew ? "Mínimo de 4 caracteres" : "Deixe em branco para manter a atual" }),
           state.demo ? "No modo demonstração, todos os acessos usam a senha demo123." : "Envie a senha ao cliente por um canal seguro.")),
       h("label", { class: "toggle" }, h("input", { type: "checkbox", checked: f.active !== false, onchange: (e) => (f.active = e.target.checked) }), "Acesso ao relatório ativo"),
       h("div", { class: "svc" },
@@ -490,7 +490,7 @@ function renderEditor(keepScroll) {
 async function save(btn, err) {
   const f = form;
   err.textContent = "";
-  if (f.isNew && !state.demo && String(f.password || "").length < 10) { err.textContent = "Defina uma senha de acesso com pelo menos 10 caracteres."; $("#ed-pass").focus(); return; }
+  if (f.isNew && !state.demo && String(f.password || "").length < 4) { err.textContent = "Defina uma senha de acesso com pelo menos 4 caracteres."; $("#ed-pass").focus(); return; }
   const payload = {
     id: f.isNew ? undefined : f.id,
     name: f.name, contactName: f.contactName, email: f.email, username: f.username || "", password: f.password || undefined,

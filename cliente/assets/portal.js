@@ -543,7 +543,7 @@ $("#signup-form").addEventListener("submit", async (e) => {
     email: $("#su-email").value.trim(), phone: $("#su-phone").value.trim(), password: $("#su-pass").value,
   };
   if (!body.company || !body.contactName || !body.email || !body.password) { err.textContent = "Preencha empresa, nome, e-mail e senha."; return; }
-  if (body.password.length < 8) { err.textContent = "A senha precisa ter pelo menos 8 caracteres."; $("#su-pass").focus(); return; }
+  if (body.password.length < 4) { err.textContent = "A senha precisa ter pelo menos 4 caracteres."; $("#su-pass").focus(); return; }
   if (body.password !== $("#su-pass2").value) { err.textContent = "As senhas não são iguais. Digite a mesma senha nos dois campos."; $("#su-pass2").focus(); return; }
   btn.disabled = true; btn.querySelector("span").textContent = "Enviando…"; err.textContent = "";
   try {

@@ -1,21 +1,21 @@
 import { json, readBody, fail, sleep } from "../_lib/http.js";
-import { findByEmailAny, verifyPassword, burn, publicProfile } from "../_lib/clients.js";
+import { findByLogin, verifyPassword, burn, publicProfile } from "../_lib/clients.js";
 import { setSession } from "../_lib/session.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return json(res, 405, { error: "Método não permitido" });
   try {
     const { email, password } = await readBody(req);
-    if (!email || !password) return json(res, 400, { error: "Informe e-mail e senha." });
+    if (!email || !password) return json(res, 400, { error: "Informe e-mail (ou usuário) e senha." });
 
-    const client = await findByEmailAny(email);
+    const client = await findByLogin(email);
     let ok = false;
     if (client) ok = verifyPassword(password, client.passwordHash);
     else burn(password);
 
     if (!ok) {
       await sleep(350 + Math.random() * 250);
-      return json(res, 401, { error: "E-mail ou senha incorretos." });
+      return json(res, 401, { error: "Usuário ou senha incorretos." });
     }
     if (client.active === false) {
       return json(res, 403, { error: client.pending

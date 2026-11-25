@@ -31,6 +31,13 @@ export async function findByEmailAny(email) {
   const e = String(email || "").trim().toLowerCase();
   return (await loadClients()).find((c) => String(c.email).toLowerCase() === e) || null;
 }
+// Login aceita o e-mail ou o nome de usuário do cliente
+export const normUser = (v) => String(v || "").trim().toLowerCase().replace(/^@/, "");
+export async function findByLogin(id) {
+  const e = normUser(id);
+  if (!e) return null;
+  return (await loadClients()).find((c) => String(c.email).toLowerCase() === e || (c.username && c.username === e)) || null;
+}
 export async function findById(id) {
   return (await loadClients()).find((c) => c.id === id) || null;
 }

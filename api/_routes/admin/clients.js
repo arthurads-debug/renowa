@@ -1,7 +1,7 @@
 // /api/admin/clients — GET lista · POST cria/atualiza · DELETE ?id= remove
 import { json, readBody, fail } from "../../_lib/http.js";
 import { requireAdmin } from "../../_lib/admin.js";
-import { loadClients, invalidateClients, hashPassword, adminView } from "../../_lib/clients.js";
+import { loadClients, invalidateClients, hashPassword, adminView, normUser } from "../../_lib/clients.js";
 import { writeClient, removeClient } from "../../_lib/store.js";
 
 const PROFILES = ["awareness", "leads", "sales"];
@@ -16,10 +16,13 @@ function clean(input, existing) {
   const email = str(input.email, 120).toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw bad("Informe um e-mail de acesso válido.");
   const profile = PROFILES.includes(input.profile) ? input.profile : "leads";
+  const username = normUser(input.username).slice(0, 40);
+  if (username && !/^[a-z0-9][a-z0-9._-]{2,39}$/.test(username)) throw bad("O usuário de acesso deve ter de 3 a 40 letras, números, ponto, hífen ou sublinhado, sem espaços.");
 
   const c = {
     id: existing?.id || slug(input.id || name) || `cliente-${Date.now()}`,
     name, email, profile,
+    ...(username ? { username } : {}),
     contactName: str(input.contactName, 80),
     resultLabel: str(input.resultLabel, 40) || (profile === "sales" ? "Vendas" : profile === "awareness" ? "Interações" : "Conversas no WhatsApp"),
     currency: /^[A-Z]{3}$/.test(input.currency || "") ? input.currency : "BRL",
@@ -101,6 +104,7 @@ export default async function handler(req, res) {
       const client = clean(input, existing);
       if (!existing && list.some((c) => c.id === client.id)) client.id = `${client.id}-${Date.now().toString(36).slice(-4)}`;
       if (list.some((c) => c.id !== client.id && String(c.email).toLowerCase() === client.email)) throw bad("Já existe um cliente com esse e-mail de acesso.");
+      if (client.username && list.some((c) => c.id !== client.id && (c.username === client.username || String(c.email).toLowerCase() === client.username))) throw bad("Esse usuário de acesso já está em uso por outro cliente.");
       delete client.source;
       await writeClient(client);
       invalidateClients();

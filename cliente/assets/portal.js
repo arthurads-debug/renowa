@@ -566,7 +566,7 @@ $("#login-form").addEventListener("submit", async (e) => {
   const password = $("#login-pass").value;
   const err = $("#login-error");
   const btn = e.currentTarget.querySelector("button[type=submit]");
-  if (!email || !password) { err.textContent = "Informe e-mail e senha."; return; }
+  if (!email || !password) { err.textContent = "Informe e-mail (ou usuário) e senha."; return; }
   btn.disabled = true;
   btn.querySelector("span").textContent = "Entrando…";
   err.textContent = "";

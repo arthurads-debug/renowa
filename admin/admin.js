@@ -384,7 +384,7 @@ async function saveClient(c, patch) {
   const base = state.clients.find((x) => x.id === c.id) || c;
   const m = { ...base, ...patch };
   await backend.save({
-    id: m.id, name: m.name, contactName: m.contactName, email: m.email,
+    id: m.id, name: m.name, contactName: m.contactName, email: m.email, username: m.username || "",
     profile: m.profile, resultLabel: m.resultLabel, note: m.note, active: m.active !== false, calendar: m.calendar !== false,
     city: m.profile === "awareness" ? m.city : undefined,
     ads: Array.isArray(m.ads) ? m.ads : legacy(m),
@@ -428,6 +428,8 @@ function renderEditor(keepScroll) {
         fld("Pessoa de contato", inp("ed-contact", f.contactName, { oninput: set("contactName"), placeholder: "Ex.: Rafael, Secretaria de Comunicação" }))),
       h("div", { class: "row" },
         fld("E-mail de acesso *", inp("ed-email", f.email, { type: "email", autocomplete: "off", oninput: set("email") }), "O cliente entra no relatório com este e-mail."),
+        fld("Usuário de acesso", inp("ed-user", f.username || "", { autocomplete: "off", autocapitalize: "none", spellcheck: "false", oninput: set("username"), placeholder: "Ex.: nossaparagominas" }), "Opcional. O cliente pode entrar com o usuário no lugar do e-mail.")),
+      h("div", { class: "row" },
         fld(f.isNew ? "Senha de acesso *" : "Nova senha", inp("ed-pass", "", { type: "text", autocomplete: "new-password", oninput: set("password"), placeholder: f.isNew ? "Mínimo de 10 caracteres" : "Deixe em branco para manter a atual" }),
           state.demo ? "No modo demonstração, todos os acessos usam a senha demo123." : "Envie a senha ao cliente por um canal seguro.")),
       h("label", { class: "toggle" }, h("input", { type: "checkbox", checked: f.active !== false, onchange: (e) => (f.active = e.target.checked) }), "Acesso ao relatório ativo"),
@@ -491,7 +493,7 @@ async function save(btn, err) {
   if (f.isNew && !state.demo && String(f.password || "").length < 10) { err.textContent = "Defina uma senha de acesso com pelo menos 10 caracteres."; $("#ed-pass").focus(); return; }
   const payload = {
     id: f.isNew ? undefined : f.id,
-    name: f.name, contactName: f.contactName, email: f.email, password: f.password || undefined,
+    name: f.name, contactName: f.contactName, email: f.email, username: f.username || "", password: f.password || undefined,
     profile: f.profile, resultLabel: f.resultLabel, note: f.note, active: f.active !== false, calendar: f.calendar !== false,
     city: f.profile === "awareness" ? f.city : undefined,
     ads: adsOfForm(f), metaAds: { resultActionTypes: f.metaConfig?.resultActionTypes || f.metaAds?.resultActionTypes || [] }, facebook: f.facebook || undefined, instagram: f.instagram || undefined, youtube: f.youtube || undefined,

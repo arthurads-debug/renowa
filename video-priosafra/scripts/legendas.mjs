@@ -27,7 +27,7 @@ if (tr?.words) {
   const pausas = existsSync(new URL("../audio/pausas.txt", import.meta.url)) ? readFileSync(new URL("../audio/pausas.txt", import.meta.url), "utf8").trim().split("\n").map((l) => +l.split(" ")[0] + ATRASO_VOZ) : [];
   const ini = CENAS.map((_, i) => (i === 0 ? ATRASO_VOZ : NARRADA[i] + 0.3));
   CENAS.forEach((c, i) => {
-    const a = ini[i], b = (i + 1 < CENAS.length ? ini[i + 1] - 0.5 : Math.min(DURACAO - 2, 153.4));
+    const a = ini[i], b = (i + 1 < CENAS.length ? ini[i + 1] - 0.5 : Math.min(DURACAO - 2, 154.2));
     const parts = frases(c.narracao).flatMap(pedacos);
     const total = parts.reduce((s, p) => s + p.length, 0);
     let t = a, acc = 0;

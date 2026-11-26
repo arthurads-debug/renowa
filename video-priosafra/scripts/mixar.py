@@ -10,12 +10,12 @@ import json, math, os, struct, subprocess, sys
 
 os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 FF = "/opt/homebrew/bin/ffmpeg"
-DUR = 157.0
+DUR = 158.0
 ATRASO = 0.8  # a voz entra em 0,8 s
 
 # Tempos de AUTORIA (iguais aos das animações em proj/*.js); convertidos para o tempo real por unwarp.
 A = [0, 14, 28, 47, 63, 82, 101, 119, 132, 152, 168, 180]
-N = [0, 12.9, 25.98, 39.16, 53.14, 68.78, 83.85, 98.11, 110.3, 126.67, 139.38, 157]
+N = [0, 12.93, 26.31, 39.64, 54.1, 69.65, 84.72, 99.05, 111.19, 127.46, 140.21, 158]
 def real(a):
     for i in range(len(A) - 1):
         if a < A[i + 1] or i == len(A) - 2:
@@ -56,16 +56,33 @@ n = len(CUES)
 filt.append("".join(f"[s{i}]" for i in range(n)) + f"amix=inputs={n}:normalize=0:dropout_transition=0,apad,atrim=0:{DUR}[sfx]")
 # efeitos sozinhos (para medir)
 run(inputs + ["-filter_complex", ";".join(filt), "-map", "[sfx]", "-ar", "48000", "audio/sfx-trilha.wav"])
-# voz no lugar (0,8 s de atraso), efeitos com sidechain pela voz, mixagem e normalização
-run(["-i", "audio/narracao.mp3", "-i", "audio/sfx-trilha.wav", "-filter_complex",
-     f"[0:a]aresample=48000,aformat=channel_layouts=stereo,adelay={int(ATRASO*1000)}|{int(ATRASO*1000)},apad,atrim=0:{DUR},asplit=3[v][key][vm];"
-     "[1:a][key]sidechaincompress=threshold=0.02:ratio=8:attack=5:release=300[sd];"
-     "[sd]asplit=2[sd1][sd2];"
-     f"[v][sd1]amix=inputs=2:normalize=0,afade=t=out:st={DUR-2.5}:d=2.5,loudnorm=I=-16:TP=-1.5:LRA=11[out];"
-     "[vm]anull[vo]",
+# Trilha dinâmica: a chave do sidechain é voz + efeitos, então a música abaixa sempre que alguém "fala"
+# (voz ou efeito) e volta a subir nos respiros. Base em -19 dB; entra e sai em fade.
+TEM_TRILHA = os.path.exists("audio/trilha.mp3")
+cadeia = (
+    f"[0:a]aresample=48000,aformat=channel_layouts=stereo,adelay={int(ATRASO*1000)}|{int(ATRASO*1000)},apad,atrim=0:{DUR},asplit=4[v][key][vm][vk];"
+    "[1:a][key]sidechaincompress=threshold=0.02:ratio=8:attack=5:release=300[sd];"
+    "[sd]asplit=3[sd1][sd2][sk];"
+)
+if TEM_TRILHA:
+    cadeia += (
+        "[vk][sk]amix=inputs=2:normalize=0,volume=3[mkey];"
+        f"[2:a]aresample=48000,aformat=channel_layouts=stereo,aloop=loop=-1:size=2e9,atrim=0:{DUR},volume=-9dB,afade=t=in:st=0:d=2.5,afade=t=out:st={DUR-4}:d=4[mu];"
+        "[mu][mkey]sidechaincompress=threshold=0.012:ratio=4:attack=40:release=900:makeup=1[md];"
+        "[md]asplit=2[md1][md2];"
+        f"[v][sd1][md1]amix=inputs=3:normalize=0,afade=t=out:st={DUR-2.5}:d=2.5,loudnorm=I=-16:TP=-1.5:LRA=11[out];"
+    )
+    entradas = ["-i", "audio/narracao.mp3", "-i", "audio/sfx-trilha.wav", "-i", "audio/trilha.mp3"]
+    extra = ["-map", "[md2]", "-ar", "48000", "audio/musica-abaixada.wav"]
+else:
+    cadeia += "[vk]anullsink;[sk]anullsink;" + f"[v][sd1]amix=inputs=2:normalize=0,afade=t=out:st={DUR-2.5}:d=2.5,loudnorm=I=-16:TP=-1.5:LRA=11[out];"
+    entradas = ["-i", "audio/narracao.mp3", "-i", "audio/sfx-trilha.wav"]
+    extra = []
+cadeia += "[vm]anull[vo]"
+run(entradas + ["-filter_complex", cadeia,
      "-map", "[out]", "-ar", "48000", "audio/mix-final.wav",
      "-map", "[sd2]", "-ar", "48000", "audio/sfx-abaixado.wav",
-     "-map", "[vo]", "-ar", "48000", "audio/voz-no-lugar.wav"])
+     "-map", "[vo]", "-ar", "48000", "audio/voz-no-lugar.wav"] + extra)
 
 def janelas(path, win=0.2):
     d = subprocess.check_output([FF, "-v", "error", "-i", path, "-ac", "1", "-ar", "8000", "-f", "s16le", "-"])
@@ -90,3 +107,11 @@ print(f"pior momento: efeito {pior:+.1f} dB em relação à voz, em {onde:.1f} s
 if pior > -6:
     sys.exit("ERRO: algum efeito ficou perto demais ou acima da voz")
 print("ok: nenhum efeito passa da voz (folga mínima de %.1f dB)" % -pior)
+if TEM_TRILHA:
+    mus = janelas("audio/musica-abaixada.wav")
+    fala = [i for i, v in enumerate(voz) if v > 1500]
+    pm = max(mus[i] for i in fala); mm = sorted(mus[i] for i in fala)[len(fala) // 2]
+    print(f"trilha com voz: pico {db(pm)-db(pico_voz):+.1f} dB / típico {db(mm)-db(sorted(voz[i] for i in fala)[len(fala)//2]):+.1f} dB em relação à voz")
+    pausa = [mus[i] for i, v in enumerate(env) if v < 300 and 2 < i * 0.2 < DUR - 4]
+    if pausa: print(f"trilha nos respiros: {db(sorted(pausa)[len(pausa)//2]):.1f} dBFS (sobe quando ninguém fala)")
+    if db(pm) - db(pico_voz) > -8: sys.exit("ERRO: trilha alta demais sob a voz")

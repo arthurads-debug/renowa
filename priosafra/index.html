@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>PrioSafra × Renowa · Proposta</title>
+  <meta name="description" content="Apresentação da Renowa para a PrioSafra Agronegócio: marketing, tecnologia e inteligência comercial em uma operação integrada." />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#052A1D" />
+  <link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://images.unsplash.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Manrope:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@1,9..144,300;1,9..144,400&display=swap" rel="stylesheet" />
+  <link rel="preload" as="image" href="https://images.unsplash.com/photo-1655319446881-2c34b11cfb02?auto=format&fit=crop&w=2400&q=78" />
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <div id="boot" class="boot" aria-hidden="true"><div class="boot__ring"></div></div>
+  <main id="deck" class="deck" aria-live="polite"></main>
+
+  <header class="chrome chrome--top" id="chrome-top">
+    <button class="lockup" id="lockup" type="button" aria-label="Ir para a abertura"></button>
+    <div class="chrome__tools">
+      <button class="tool" id="t-guided" type="button" aria-pressed="false" title="Apresentação guiada (G)"><span class="tool__ic"></span><span class="tool__t">Guiada</span></button>
+      <button class="tool" id="t-pause" type="button" aria-pressed="false" title="Pausar animações (P)"><span class="tool__ic"></span><span class="tool__t">Animações</span></button>
+      <button class="tool" id="t-full" type="button" title="Tela cheia (F)"><span class="tool__ic"></span><span class="tool__t">Tela cheia</span></button>
+      <button class="tool tool--menu" id="t-menu" type="button" aria-expanded="false" aria-controls="menu" title="Capítulos (M)"><span class="tool__ic"></span><span class="tool__t">Capítulos</span></button>
+    </div>
+  </header>
+
+  <nav class="menu" id="menu" aria-label="Capítulos" hidden>
+    <div class="menu__panel">
+      <p class="menu__k">Capítulos</p>
+      <ol class="menu__list" id="menu-list"></ol>
+      <p class="menu__hint">← → navegar · F tela cheia · P pausar · G guiada · M menu</p>
+    </div>
+  </nav>
+
+  <footer class="chrome chrome--bottom" id="chrome-bottom">
+    <button class="navbtn" id="prev" type="button" aria-label="Capítulo anterior"></button>
+    <div class="prog" id="prog" role="tablist" aria-label="Progresso da apresentação"></div>
+    <p class="count" id="count">01 / 17</p>
+    <button class="navbtn navbtn--next" id="next" type="button" aria-label="Próximo"></button>
+  </footer>
+  <noscript><p style="padding:2rem;font-family:sans-serif">Esta apresentação precisa de JavaScript ativado.</p></noscript>
+</body>
+</html>

@@ -75,12 +75,36 @@
           "value": "nosniff"
         }
       ]
+    },
+    {
+      "source": "/priosafra/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "same-origin"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
     }
   ],
   "rewrites": [
     {
       "source": "/api/:path((?!router$).*)",
       "destination": "/api/router?__route=:path"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/priosafra",
+      "destination": "/priosafra/",
+      "permanent": false
     }
   ]
 }

@@ -8,6 +8,9 @@ Endereço: `/priosafra` (fora dos buscadores: `noindex`).
 - No celular: deslize para os lados ou use os botões de baixo.
 - Link direto para um capítulo: `/priosafra/#instagram`, `#site`, `#atendente`, `#dashboard`, `#condicao`, `#economia`…
 
+## Vídeo da proposta (capítulo 17)
+Arquivos em `media/`: `proposta.mp4` (versão leve), `proposta.jpg` (capa) e `proposta.vtt` (legendas). O código-fonte e os comandos de renderização ficam em `../video-priosafra/README.md`. Por enquanto o vídeo está sem narração.
+
 ## Onde mudar os dados
 Tudo fica em `config.js`: empresa, cores, marcas, região, WhatsApp, fotos, produtos, valores, escopo, cronograma, artes do Instagram e dados de demonstração.
 

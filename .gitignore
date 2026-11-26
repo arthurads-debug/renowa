@@ -8,3 +8,8 @@ node_modules
 video-manifesto/
 .claude/
 entregas/
+
+# vídeo PrioSafra: só o código vai para o repositório
+video-priosafra/output/
+video-priosafra/frames/
+video-priosafra/audio/*.wav

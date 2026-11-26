@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "historyId": "8be4eefe-7356-4dd9-829e-bf24a01352cf",
+  "currentRevision": "9f06f906-c35d-4792-b73e-85159e462a1a",
+  "pendingChanges": false,
+  "files": {
+    "assets/instagram-atual-foto.jpg": {
+      "hash": "f2786b9cc190412477b4b474d372aae9f153ec45481161dcab9a7690d69269b9",
+      "content": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/f2/f2786b9cc190412477b4b474d372aae9f153ec45481161dcab9a7690d69269b9"
+    },
+    "assets/instagram-atual-grade.jpg": {
+      "hash": "188897030e0ee298c0e8cd642570b9b4c56e6df261fcc5dcf4451eea7b3e74ae",
+      "content": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/18/188897030e0ee298c0e8cd642570b9b4c56e6df261fcc5dcf4451eea7b3e74ae"
+    },
+    "cenas2.js": {
+      "hash": "e18986e028b246fb832f320bd48a7d5df812e032badfb070741fbc97607704fd",
+      "content": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/e1/e18986e028b246fb832f320bd48a7d5df812e032badfb070741fbc97607704fd"
+    },
+    "index.html": {
+      "hash": "2bdacba4631ba6ba1a79e4c16c1f423fc7024c6a853e3fb3be08cfde6a1edc92",
+      "content": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/2b/2bdacba4631ba6ba1a79e4c16c1f423fc7024c6a853e3fb3be08cfde6a1edc92"
+    },
+    "motor.js": {
+      "hash": "208b6de1bbac4b22376b97209a006ea2dc6279533b8dd8698464eb1c03639546",
+      "content": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/20/208b6de1bbac4b22376b97209a006ea2dc6279533b8dd8698464eb1c03639546"
+    },
+    "roteiro.js": {
+      "hash": "a1e145c70b8e9d3300eae99deeac2c5d0ba80dbed1f990dc148227d618bf008d",
+      "content": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/a1/a1e145c70b8e9d3300eae99deeac2c5d0ba80dbed1f990dc148227d618bf008d"
+    },
+    "shared/arts.js": {
+      "hash": "834598286c82f783a5ec375828a484b392fd18d13fe57ec05e4bf05c9f7300c5",
+      "content": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/83/834598286c82f783a5ec375828a484b392fd18d13fe57ec05e4bf05c9f7300c5"
+    },
+    "shared/config.js": {
+      "hash": "bbd2f32dbb0f8d800aa8b38db81e3492b91d4321bd52de6d885ba654914ec996",
+      "content": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/bb/bbd2f32dbb0f8d800aa8b38db81e3492b91d4321bd52de6d885ba654914ec996"
+    },
+    "shared/lib.js": {
+      "hash": "ec89902dd0d1ee7ec51c940940b17948984c0aca3c791274152d34668580bd29",
+      "content": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/ec/ec89902dd0d1ee7ec51c940940b17948984c0aca3c791274152d34668580bd29"
+    },
+    "shared/styles.css": {
+      "hash": "c7e2779c4e54a9750e3d25bb8c59b8dbd1041dbdf2a4f0b4cb0d1e275c4b8c03",
+      "content": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/c7/c7e2779c4e54a9750e3d25bb8c59b8dbd1041dbdf2a4f0b4cb0d1e275c4b8c03"
+    },
+    "studio.js": {
+      "hash": "bb8be159438f361afc299c9023aabd59e61504060d82573559f2daa1f9b5b97f",
+      "content": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/bb/bb8be159438f361afc299c9023aabd59e61504060d82573559f2daa1f9b5b97f"
+    },
+    "video.css": {
+      "hash": "c7d2ec4883435c371b69ce4c1745752ec5ab6ff821502d7352d272b09c097696",
+      "content": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/c7/c7d2ec4883435c371b69ce4c1745752ec5ab6ff821502d7352d272b09c097696"
+    },
+    "video.js": {
+      "hash": "2089dd2622eb70ef1c9e6348255c2229b80b625d9d34a88a79b6b4dff2f9b9cf",
+      "content": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/20/2089dd2622eb70ef1c9e6348255c2229b80b625d9d34a88a79b6b4dff2f9b9cf"
+    }
+  },
+  "revisions": {
+    "ec26fdee-4291-4320-be12-af6ed64588e6": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795717019834,
+      "endedAt": 1795717019845,
+      "files": {
+        "shared/styles.css": {
+          "before": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/a0/a0744cc29cc1b0ed3774d8153fa4f83721d97204a534eb10b7b8f1e1e78f9335",
+          "after": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/c7/c7e2779c4e54a9750e3d25bb8c59b8dbd1041dbdf2a4f0b4cb0d1e275c4b8c03"
+        },
+        "video.js": {
+          "before": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/3a/3a44d1c1e0d4e27b018475762f8813add3c20a3dae73b47ba2f64e95f8649482",
+          "after": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/f1/f171ac4ea6a38fabcc8feb86931915043c3320c47a5c8edfc2544e0dbc4fd6c4"
+        }
+      }
+    },
+    "47b7e828-5b47-4dfd-8859-abe020fbc3dd": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795717508605,
+      "endedAt": 1795717508617,
+      "files": {
+        "index.html": {
+          "before": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/03/03a11fd1c402e8f6103148fbda72a1e9b1d8ecb6c2f050aa1fba098518998c68",
+          "after": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/2b/2bdacba4631ba6ba1a79e4c16c1f423fc7024c6a853e3fb3be08cfde6a1edc92"
+        },
+        "roteiro.js": {
+          "before": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/42/428cf51cb7d56b27cc011c1d6d20d44271655b784d3318110efc7d379ce13d91",
+          "after": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/a1/a1e145c70b8e9d3300eae99deeac2c5d0ba80dbed1f990dc148227d618bf008d"
+        },
+        "video.js": {
+          "before": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/f1/f171ac4ea6a38fabcc8feb86931915043c3320c47a5c8edfc2544e0dbc4fd6c4",
+          "after": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/20/2089dd2622eb70ef1c9e6348255c2229b80b625d9d34a88a79b6b4dff2f9b9cf"
+        }
+      }
+    },
+    "9f06f906-c35d-4792-b73e-85159e462a1a": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795717873487,
+      "endedAt": 1795717873492,
+      "files": {
+        "cenas2.js": {
+          "before": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/e3/e382b5ee28639158cfd78df299b833ec2aa23f9d0006d3b4de6c100344e69e1b",
+          "after": "/Users/arthurleite/.cache/hyperframes/history/8be4eefe-7356-4dd9-829e-bf24a01352cf/blobs/e1/e18986e028b246fb832f320bd48a7d5df812e032badfb070741fbc97607704fd"
+        }
+      }
+    }
+  },
+  "checks": {
+    "latest": null,
+    "revisions": {},
+    "unversioned": []
+  },
+  "snapshots": {
+    "latest": null,
+    "revisions": {},
+    "unversioned": []
+  },
+  "renders": {
+    "latest": {
+      "id": "722c2aaa-2ce3-4fe1-83c3-5a003ceb512a",
+      "completedAt": 1795718126579,
+      "output": "/Users/arthurleite/Agency/video-priosafra/output/priosafra-renowa-sem-narracao.mp4",
+      "status": "completed",
+      "revision": "9f06f906-c35d-4792-b73e-85159e462a1a"
+    },
+    "retainedRevisions": [
+      "9f06f906-c35d-4792-b73e-85159e462a1a",
+      "47b7e828-5b47-4dfd-8859-abe020fbc3dd"
+    ]
+  },
+  "pendingArtifactCleanup": []
+}

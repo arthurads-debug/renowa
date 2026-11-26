@@ -10,8 +10,9 @@ import { dashboard, atualizacao } from "./chapters/dashboard.js";
 import { conteudo, noventa, estrutura } from "./chapters/operacao.js";
 import { comparativo, condicao, economia } from "./chapters/investimento.js";
 import { encerramento } from "./chapters/encerramento.js";
+import { video } from "./chapters/video.js";
 
-const CHAPTERS = [abertura, potencial, ecossistema, instagram, audiovisual, site, atendente, trafego, dashboard, atualizacao, conteudo, noventa, estrutura, comparativo, condicao, economia, encerramento];
+const CHAPTERS = [abertura, potencial, ecossistema, instagram, audiovisual, site, atendente, trafego, dashboard, atualizacao, conteudo, noventa, estrutura, comparativo, condicao, economia, video, encerramento];
 
 const $ = (s) => document.querySelector(s);
 const deck = $("#deck");
@@ -154,7 +155,7 @@ function guided(on) {
 
 /* ---------- Teclado e toque ---------- */
 document.addEventListener("keydown", (e) => {
-  if (e.target.closest("input, textarea, select, [contenteditable]")) return;
+  if (e.target.closest("input, textarea, select, [contenteditable], video")) return;
   const k = e.key;
   if (["ArrowRight", "PageDown", " "].includes(k)) { e.preventDefault(); guided(false); next(); }
   else if (["ArrowLeft", "PageUp"].includes(k)) { e.preventDefault(); guided(false); prev(); }
